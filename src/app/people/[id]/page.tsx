@@ -102,7 +102,7 @@ export default async function PersonPage({ params }: Props) {
           <h2 className="text-xl font-semibold text-white mb-4">
             {isDirector ? "Directed" : "Acting"} · {primaryFilms.length} films
           </h2>
-          <SortableFilmGrid films={primaryFilms.slice(0, 24)} />
+          <SortableFilmGrid films={primaryFilms} />
         </section>
       )}
 
@@ -112,7 +112,7 @@ export default async function PersonPage({ params }: Props) {
           <h2 className="text-xl font-semibold text-white mb-4">
             {isDirector ? "Also appeared in" : "Also directed"}
           </h2>
-          <SortableFilmGrid films={secondaryFilms.slice(0, 12)} />
+          <SortableFilmGrid films={secondaryFilms} />
         </section>
       )}
     </div>

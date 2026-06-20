@@ -44,6 +44,12 @@ export default function Navbar() {
             >
               Genres
             </Link>
+            <Link
+              href="/discover"
+              className="hidden sm:block text-sm text-zinc-400 hover:text-white transition-colors px-3 py-1.5"
+            >
+              Discover
+            </Link>
 
             {user ? (
               <>

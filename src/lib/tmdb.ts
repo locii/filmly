@@ -85,4 +85,10 @@ export const tmdb = {
       sort_by: "popularity.desc",
       include_adult: "false",
     }),
+
+  discover: (params: Record<string, string>, page = "1") =>
+    tmdbFetch("/discover/movie", { ...params, page }),
+
+  searchKeywords: (query: string) =>
+    tmdbFetch("/search/keyword", { query }),
 };
