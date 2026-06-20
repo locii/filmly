@@ -7,6 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const savedIds: number[] = body.saved ?? [];
+    const dislikedIds: number[] = body.disliked ?? [];
 
     if (savedIds.length === 0) {
       const trending = await tmdb.trending("1") as { results: Film[] };
@@ -20,7 +21,8 @@ export async function POST(request: NextRequest) {
       sourceIds.map((id) => tmdb.recommendations(id) as Promise<{ results: Film[] }>)
     );
 
-    const seen = new Set<number>(savedIds);
+    // Exclude both saved films and explicitly disliked ones
+    const seen = new Set<number>([...savedIds, ...dislikedIds]);
     const merged: Film[] = [];
 
     results.forEach((result) => {

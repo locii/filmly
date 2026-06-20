@@ -77,6 +77,15 @@ export interface FilmInteraction {
   created_at: string;
 }
 
+// Lightweight shape returned by /search/person
+export interface PersonResult {
+  id: number;
+  name: string;
+  profile_path: string | null;
+  known_for_department: string;
+  known_for: { id: number; title: string; poster_path: string | null }[];
+}
+
 export interface TMDBResponse<T> {
   results: T[];
   page: number;

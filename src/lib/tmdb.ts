@@ -51,6 +51,9 @@ export const tmdb = {
   search: (query: string, page = "1") =>
     tmdbFetch("/search/movie", { query, page, include_adult: "false" }),
 
+  searchPeople: (query: string, page = "1") =>
+    tmdbFetch("/search/person", { query, page, include_adult: "false" }),
+
   trending: (page = "1") =>
     tmdbFetch("/trending/movie/week", { page }),
 

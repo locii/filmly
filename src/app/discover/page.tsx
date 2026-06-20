@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
 import { Film } from "@/lib/types";
 
@@ -12,35 +13,21 @@ const EXAMPLES = [
   "Funny but heartwarming coming-of-age story",
 ];
 
-interface ParsedInfo {
-  genre_ids: number[];
-  keywords: string[];
-  keyword_ids: number[];
-}
-
 export default function DiscoverPage() {
-  const [query, setQuery] = useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [films, setFilms] = useState<Film[]>([]);
-  const [parsed, setParsed] = useState<ParsedInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  async function handleSubmit(e: React.FormEvent | null, overrideQuery?: string) {
-    e?.preventDefault();
-    const q = overrideQuery ?? query;
+  const runSearch = useCallback(async (q: string) => {
     if (!q.trim() || loading) return;
-
-    if (overrideQuery) setQuery(overrideQuery);
     setLoading(true);
     setError("");
     setFilms([]);
-    setParsed(null);
     setSubmitted(true);
 
     try {
@@ -52,49 +39,67 @@ export default function DiscoverPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong");
       setFilms(data.films ?? []);
-      setParsed(data.parsed ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
+  }, [loading]);
+
+  // Auto-run if there's a query in the URL on first load
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) {
+      setQuery(q);
+      runSearch(q);
+    } else {
+      inputRef.current?.focus();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent | null, overrideQuery?: string) {
+    e?.preventDefault();
+    const q = overrideQuery ?? query;
+    if (!q.trim()) return;
+    if (overrideQuery) setQuery(overrideQuery);
+    // Push query to URL for shareability
+    router.push(`/discover?q=${encodeURIComponent(q.trim())}`, { scroll: false });
+    await runSearch(q);
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12 space-y-10">
-      {/* Header */}
-      <div className="text-center space-y-2">
+    <div className="max-w-7xl mx-auto px-4 py-12 space-y-10">
+      <div className="space-y-2">
         <h1 className="text-3xl sm:text-4xl font-bold text-white">Find your next film</h1>
         <p className="text-zinc-400">Describe what you&apos;re in the mood for — Claude will find it.</p>
       </div>
 
-      {/* Input form */}
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="relative">
-          <textarea
-            ref={inputRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit(null);
-              }
-            }}
-            rows={2}
-            placeholder="I want to watch a gritty noir film with an anti-hero arc…"
-            className="w-full bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 resize-none focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition text-sm sm:text-base pr-24"
-          />
+        <textarea
+          ref={inputRef}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit(null);
+            }
+          }}
+          rows={2}
+          placeholder="I want to watch a gritty noir film with an anti-hero arc…"
+          className="w-full bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 resize-none focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition text-sm sm:text-base"
+        />
+        <div className="flex justify-end">
           <button
             type="submit"
             disabled={loading || !query.trim()}
-            className="absolute right-3 bottom-3 bg-brand hover:bg-brand-dark text-black text-sm font-semibold px-4 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition"
+            className="bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
-            {loading ? "…" : "Search"}
+            {loading ? "Searching…" : "Find films"}
           </button>
         </div>
 
-        {/* Example chips */}
         {!submitted && (
           <div className="flex flex-wrap gap-2">
             {EXAMPLES.map((ex) => (
@@ -111,37 +116,19 @@ export default function DiscoverPage() {
         )}
       </form>
 
-      {/* Error */}
-      {error && (
-        <p className="text-red-400 text-sm text-center">{error}</p>
-      )}
+      {error && <p className="text-amber-400 text-sm">{error}</p>}
 
-      {/* Loading */}
       {loading && (
         <div className="flex flex-col items-center gap-3 py-12">
-          <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-zinc-400 text-sm">Searching for films…</p>
         </div>
       )}
 
-      {/* Results */}
       {!loading && films.length > 0 && (
-        <div className="space-y-4">
-          {parsed?.keywords?.length ? (
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-zinc-500 text-xs">Matched:</span>
-              {parsed.keywords.map((kw, i) => (
-                <span key={i} className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full">
-                  {kw}
-                </span>
-              ))}
-            </div>
-          ) : null}
-          <SortableFilmGrid films={films} emptyMessage="No films found — try rephrasing your search." />
-        </div>
+        <SortableFilmGrid films={films} emptyMessage="No films found — try rephrasing your search." />
       )}
 
-      {/* No results */}
       {!loading && submitted && films.length === 0 && !error && (
         <div className="text-center py-12">
           <p className="text-zinc-400">No films found. Try a different description.</p>

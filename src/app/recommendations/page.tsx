@@ -20,13 +20,17 @@ export default function RecommendationsPage() {
       .filter((i) => i.interaction === "favourite")
       .map((i) => i.tmdb_id);
 
+    const disliked = interactions
+      .filter((i) => i.interaction === "dislike")
+      .map((i) => i.tmdb_id);
+
     setFetching(true);
     setError(null);
 
     fetch("/api/recommendations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ saved }),
+      body: JSON.stringify({ saved, disliked }),
     })
       .then((r) => r.json())
       .then((data) => setFilms(data.results ?? []))
@@ -65,7 +69,7 @@ export default function RecommendationsPage() {
       </div>
 
       {error && (
-        <p className="text-red-400 text-sm mb-6">{error}</p>
+        <p className="text-amber-400 text-sm mb-6">{error}</p>
       )}
 
       {fetching ? (

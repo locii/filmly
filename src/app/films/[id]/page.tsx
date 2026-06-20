@@ -5,7 +5,7 @@ import { Film, FilmDetail, Video, CastMember, CrewMember, TMDBResponse } from "@
 import FilmGrid from "@/components/FilmGrid";
 import TrailerPlayer from "@/components/TrailerPlayer";
 import HeroSection from "@/components/HeroSection";
-import SaveButton from "@/components/SaveButton";
+import FilmActions from "@/components/FilmActions";
 
 function slugify(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -82,7 +82,7 @@ export default async function FilmPage({ params }: Props) {
               <h1 className="text-2xl sm:text-4xl font-bold text-white leading-tight">
                 {film.title}
               </h1>
-              <SaveButton film={{ ...film, genre_ids: film.genres?.map((g) => g.id) ?? [] }} />
+              <FilmActions film={{ ...film, genre_ids: film.genres?.map((g) => g.id) ?? [] }} />
             </div>
             {film.tagline && (
               <p className="text-zinc-400 italic text-sm">{film.tagline}</p>
