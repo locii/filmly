@@ -16,10 +16,10 @@ export default function Navbar() {
 
   const navClass = (href: string) => {
     const active = pathname === href || !!pathname?.startsWith(`${href}/`);
-    return `hidden sm:block text-sm px-3 py-1.5 rounded-lg transition-colors ${
+    return `hidden sm:block text-sm px-3 py-1.5 transition-colors ${
       active
-        ? "text-white bg-zinc-800 font-medium"
-        : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+        ? "text-brand font-medium"
+        : "text-zinc-400 hover:text-white"
     }`;
   };
 
