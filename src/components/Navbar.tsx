@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import SearchBar from "./SearchBar";
 import AuthModal from "./AuthModal";
@@ -13,6 +13,8 @@ export default function Navbar() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const navClass = (href: string) => {
     const active = pathname === href || !!pathname?.startsWith(`${href}/`);
@@ -32,9 +34,23 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [menuOpen]);
+
   async function handleSignOut() {
+    setMenuOpen(false);
     await supabase.auth.signOut();
   }
+
+  const avatarLetter = (user?.email ?? "?").charAt(0).toUpperCase();
 
   return (
     <>
@@ -64,12 +80,39 @@ export default function Navbar() {
                 <Link href="/recommendations" className={navClass("/recommendations")}>
                   For You
                 </Link>
-                <button
-                  onClick={handleSignOut}
-                  className="text-sm bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  Sign out
-                </button>
+
+                <div className="relative" ref={menuRef}>
+                  <button
+                    onClick={() => setMenuOpen((o) => !o)}
+                    aria-label="Account menu"
+                    aria-haspopup="menu"
+                    aria-expanded={menuOpen}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors"
+                  >
+                    {avatarLetter}
+                  </button>
+
+                  {menuOpen && (
+                    <div
+                      role="menu"
+                      className="absolute right-0 mt-2 w-56 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl py-1 z-50"
+                    >
+                      {user.email && (
+                        <div className="px-3 py-2 border-b border-zinc-800">
+                          <p className="text-xs text-zinc-500">Signed in as</p>
+                          <p className="text-sm text-zinc-200 truncate">{user.email}</p>
+                        </div>
+                      )}
+                      <button
+                        onClick={handleSignOut}
+                        role="menuitem"
+                        className="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <button
