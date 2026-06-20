@@ -8,12 +8,12 @@ const anthropic = new Anthropic();
 async function getTitlesFromClaude(query: string): Promise<string[]> {
   const message = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 1000,
+    max_tokens: 2000,
     messages: [{
       role: "user",
       content: `You are an expert film curator. A user wants: "${query}"
 
-Give me 50 real theatrical films that match. Rules:
+Give me 100 real theatrical films that match. Rules:
 - ONLY films — no TV shows, no mini-series, no short films
 - Cover blockbusters, indie films, foreign language films, and documentaries
 - Include different tones: drama, dark comedy, thriller, action, documentary

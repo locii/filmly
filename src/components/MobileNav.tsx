@@ -64,7 +64,7 @@ export default function MobileNav() {
     { href: "/search", label: "Search", icon: SearchIcon, match: (p: string) => p.startsWith("/search") },
     { href: "/discover", label: "Discover", icon: SparkleIcon, match: (p: string) => p.startsWith("/discover") },
     ...(user ? [
-      { href: "/favourites", label: "Saved", icon: HeartIcon, match: (p: string) => p.startsWith("/favourites") },
+      { href: "/watchlist", label: "Watchlist", icon: HeartIcon, match: (p: string) => p.startsWith("/watchlist") },
       { href: "/recommendations", label: "For You", icon: UserIcon, match: (p: string) => p.startsWith("/recommendations") },
     ] : []),
   ];

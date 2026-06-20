@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFavourites } from "@/context/FavouritesContext";
 import FilmGrid from "@/components/FilmGrid";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
@@ -12,12 +12,17 @@ export default function RecommendationsPage() {
   const [films, setFilms] = useState<Film[]>([]);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || hasFetched.current) return;
+    // Fetch recommendations once, from the interactions as they stand on load.
+    // We intentionally do NOT refetch when interactions change, so saving or
+    // marking a film watched doesn't make it vanish from the grid.
+    hasFetched.current = true;
 
     const saved = interactions
-      .filter((i) => i.interaction === "favourite")
+      .filter((i) => i.interaction === "watchlist" || i.interaction === "watched" || i.interaction === "like")
       .map((i) => i.tmdb_id);
 
     const disliked = interactions
@@ -48,7 +53,7 @@ export default function RecommendationsPage() {
     );
   }
 
-  const likedCount = interactions.filter((i) => i.interaction === "favourite").length;
+  const likedCount = interactions.filter((i) => i.interaction === "watchlist" || i.interaction === "watched" || i.interaction === "like").length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">

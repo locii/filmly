@@ -79,7 +79,7 @@ export default function GenreRow({ genreId, genreName, films }: Props) {
       {/* Saved films */}
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
         {films.map((film) => (
-          <div key={film.tmdb_id} className="shrink-0 w-36">
+          <div key={film.tmdb_id} className="shrink-0 w-44">
             <FilmCard film={interactionToFilm(film)} />
           </div>
         ))}
@@ -91,7 +91,7 @@ export default function GenreRow({ genreId, genreName, films }: Props) {
           <p className="text-xs text-zinc-500 mb-2 uppercase tracking-wider">Suggested for you</p>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {suggestions.map((film) => (
-              <div key={film.id} className="shrink-0 w-36">
+              <div key={film.id} className="shrink-0 w-44">
                 <FilmCard film={film} />
               </div>
             ))}

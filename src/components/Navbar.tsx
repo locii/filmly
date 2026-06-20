@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import SearchBar from "./SearchBar";
@@ -9,8 +10,18 @@ import type { User } from "@supabase/supabase-js";
 
 export default function Navbar() {
   const supabase = createClient();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [showAuth, setShowAuth] = useState(false);
+
+  const navClass = (href: string) => {
+    const active = pathname === href || !!pathname?.startsWith(`${href}/`);
+    return `hidden sm:block text-sm px-3 py-1.5 rounded-lg transition-colors ${
+      active
+        ? "text-white bg-zinc-800 font-medium"
+        : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+    }`;
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -29,8 +40,8 @@ export default function Navbar() {
     <>
       <header className="fixed top-0 left-0 right-0 z-40 bg-zinc-950/90 backdrop-blur border-b border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-4">
-          <Link href="/" className="text-white font-bold text-xl tracking-tight shrink-0">
-            🎬 Filmly
+          <Link href="/" className="font-bold text-xl tracking-tight shrink-0">
+            🎬 <span className="text-vanilla">Film</span><span className="text-brand">ly</span>
           </Link>
 
           <div className="flex-1">
@@ -38,31 +49,19 @@ export default function Navbar() {
           </div>
 
           <nav className="flex items-center gap-2 shrink-0">
-            <Link
-              href="/genres"
-              className="hidden sm:block text-sm text-zinc-400 hover:text-white transition-colors px-3 py-1.5"
-            >
+            <Link href="/genres" className={navClass("/genres")}>
               Genres
             </Link>
-            <Link
-              href="/discover"
-              className="hidden sm:block text-sm text-zinc-400 hover:text-white transition-colors px-3 py-1.5"
-            >
+            <Link href="/discover" className={navClass("/discover")}>
               Discover
             </Link>
 
             {user ? (
               <>
-                <Link
-                  href="/favourites"
-                  className="hidden sm:block text-sm text-zinc-400 hover:text-white transition-colors px-3 py-1.5"
-                >
-                  Favourites
+                <Link href="/watchlist" className={navClass("/watchlist")}>
+                  Watchlist
                 </Link>
-                <Link
-                  href="/recommendations"
-                  className="hidden sm:block text-sm text-zinc-400 hover:text-white transition-colors px-3 py-1.5"
-                >
+                <Link href="/recommendations" className={navClass("/recommendations")}>
                   For You
                 </Link>
                 <button

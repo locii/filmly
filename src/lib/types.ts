@@ -73,7 +73,7 @@ export interface FilmInteraction {
   title: string;
   poster_path: string | null;
   genre_ids: number[];
-  interaction: "like" | "dislike" | "favourite";
+  interaction: "like" | "dislike" | "watchlist" | "watched";
   created_at: string;
 }
 

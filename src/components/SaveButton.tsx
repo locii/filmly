@@ -11,7 +11,7 @@ interface Props {
 export default function SaveButton({ film }: Props) {
   const { addInteraction, removeInteraction, getInteraction, isLoggedIn } = useFavourites();
   const [isActing, setIsActing] = useState(false);
-  const isSaved = getInteraction(film.id).some((i) => i.interaction === "favourite");
+  const isSaved = getInteraction(film.id).some((i) => i.interaction === "watchlist");
 
   if (!isLoggedIn) return null;
 
@@ -20,13 +20,13 @@ export default function SaveButton({ film }: Props) {
     setIsActing(true);
     try {
       if (isSaved) {
-        await removeInteraction(film.id, "favourite");
+        await removeInteraction(film.id, "watchlist");
       } else {
         await addInteraction(
           film.id,
           film.title,
           film.poster_path,
-          "favourite",
+          "watchlist",
           film.genre_ids ?? []
         );
       }

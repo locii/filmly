@@ -9,7 +9,24 @@ import {
   ReactNode,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/context/ToastContext";
 import { FilmInteraction } from "@/lib/types";
+
+type InteractionType = "like" | "dislike" | "watchlist" | "watched";
+
+const ADD_TOAST: Record<InteractionType, { message: string; tone: "brand" | "green" | "yellow" | "red" }> = {
+  watchlist: { message: "Added to watchlist", tone: "brand" },
+  watched: { message: "Marked as watched", tone: "green" },
+  like: { message: "Liked", tone: "yellow" },
+  dislike: { message: "Marked as not interested", tone: "red" },
+};
+
+const REMOVE_TOAST: Record<InteractionType, string> = {
+  watchlist: "Removed from watchlist",
+  watched: "Removed from watched",
+  like: "Like removed",
+  dislike: "Removed from not interested",
+};
 
 interface FavouritesContextType {
   interactions: FilmInteraction[];
@@ -18,10 +35,14 @@ interface FavouritesContextType {
     tmdbId: number,
     title: string,
     posterPath: string | null,
-    type: "like" | "dislike" | "favourite",
+    type: "like" | "dislike" | "watchlist" | "watched",
     genreIds?: number[]
   ) => Promise<void>;
-  removeInteraction: (tmdbId: number, type: "like" | "dislike" | "favourite") => Promise<void>;
+  removeInteraction: (
+    tmdbId: number,
+    type: InteractionType,
+    opts?: { silent?: boolean }
+  ) => Promise<void>;
   getInteraction: (tmdbId: number) => FilmInteraction[];
   isLoggedIn: boolean;
 }
@@ -30,6 +51,7 @@ const FavouritesContext = createContext<FavouritesContextType | null>(null);
 
 export function FavouritesProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
+  const { showToast } = useToast();
   const [interactions, setInteractions] = useState<FilmInteraction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -63,7 +85,7 @@ export function FavouritesProvider({ children }: { children: ReactNode }) {
     tmdbId: number,
     title: string,
     posterPath: string | null,
-    type: "like" | "dislike" | "favourite",
+    type: "like" | "dislike" | "watchlist" | "watched",
     genreIds: number[] = []
   ) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -90,12 +112,17 @@ export function FavouritesProvider({ children }: { children: ReactNode }) {
         data as FilmInteraction,
         ...prev.filter((i) => !(i.tmdb_id === tmdbId && i.interaction === type)),
       ]);
+      const t = ADD_TOAST[type];
+      showToast(t.message, t.tone);
+    } else if (error) {
+      showToast("Couldn't save — please try again", "red");
     }
   };
 
   const removeInteraction = async (
     tmdbId: number,
-    type: "like" | "dislike" | "favourite"
+    type: InteractionType,
+    opts?: { silent?: boolean }
   ) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -110,6 +137,8 @@ export function FavouritesProvider({ children }: { children: ReactNode }) {
     setInteractions((prev) =>
       prev.filter((i) => !(i.tmdb_id === tmdbId && i.interaction === type))
     );
+
+    if (!opts?.silent) showToast(REMOVE_TOAST[type], "zinc");
   };
 
   const getInteraction = (tmdbId: number) =>
