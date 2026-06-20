@@ -2,7 +2,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { tmdb, TMDB_IMAGE_BASE } from "@/lib/tmdb";
 import { Film, FilmDetail, Video, CastMember, CrewMember, TMDBResponse } from "@/lib/types";
-import FilmGrid from "@/components/FilmGrid";
+import SortableFilmGrid from "@/components/SortableFilmGrid";
 import TrailerPlayer from "@/components/TrailerPlayer";
 import HeroSection from "@/components/HeroSection";
 import FilmActions from "@/components/FilmActions";
@@ -29,10 +29,11 @@ export default async function FilmPage({ params }: Props) {
   if (!film) notFound();
 
   // Non-fatal parallel fetches — page renders even if these fail
-  const [videosData, creditsData, recommendations] = await Promise.all([
+  const [videosData, creditsData, recsData, similarData] = await Promise.all([
     tmdb.filmVideos(filmId).catch(() => ({ results: [] as Video[] })) as Promise<{ results: Video[] }>,
     tmdb.filmCredits(filmId).catch(() => ({ cast: [] as CastMember[], crew: [] as CrewMember[] })) as Promise<{ cast: CastMember[]; crew: CrewMember[] }>,
     tmdb.recommendations(filmId).catch(() => ({ results: [] as Film[] })) as Promise<TMDBResponse<Film>>,
+    tmdb.similar(filmId).catch(() => ({ results: [] as Film[] })) as Promise<TMDBResponse<Film>>,
   ]);
 
   const backdropUrl = film.backdrop_path
@@ -57,6 +58,22 @@ export default async function FilmPage({ params }: Props) {
 
   const director = creditsData.crew.find((c) => c.job === "Director");
   const cast = creditsData.cast.slice(0, 10);
+
+  // Merge recommendations + similar, deduplicate, exclude the current film
+  // Interleave so we get variety rather than all recs first then all similar
+  const seen = new Set<number>([filmId]);
+  const suggestions: Film[] = [];
+  const recList = recsData.results ?? [];
+  const simList = similarData.results ?? [];
+  const maxLen = Math.max(recList.length, simList.length);
+  for (let i = 0; i < maxLen; i++) {
+    for (const f of [recList[i], simList[i]]) {
+      if (f && !seen.has(f.id)) {
+        seen.add(f.id);
+        suggestions.push(f);
+      }
+    }
+  }
 
   return (
     <div>
@@ -162,11 +179,11 @@ export default async function FilmPage({ params }: Props) {
           </section>
         )}
 
-        {/* Recommendations */}
-        {recommendations.results.length > 0 && (
+        {/* Suggestions: recs + similar interleaved */}
+        {suggestions.length > 0 && (
           <section>
             <h2 className="text-xl font-semibold text-white mb-4">You might also like</h2>
-            <FilmGrid films={recommendations.results.slice(0, 12)} />
+            <SortableFilmGrid films={suggestions} />
           </section>
         )}
       </div>

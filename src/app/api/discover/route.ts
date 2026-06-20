@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { tmdb } from "@/lib/tmdb";
 import { Film, TMDBResponse } from "@/lib/types";
@@ -7,16 +7,22 @@ const anthropic = new Anthropic();
 
 async function getTitlesFromClaude(query: string): Promise<string[]> {
   const message = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 400,
+    model: "claude-sonnet-4-6",
+    max_tokens: 1000,
     messages: [{
       role: "user",
-      content: `You are a film expert. A user wants to find films matching this description: "${query}"
+      content: `You are an expert film curator. A user wants: "${query}"
 
-List 15 real films that closely match. Prioritise well-known films with wide availability.
+Give me 50 real theatrical films that match. Rules:
+- ONLY films — no TV shows, no mini-series, no short films
+- Cover blockbusters, indie films, foreign language films, and documentaries
+- Include different tones: drama, dark comedy, thriller, action, documentary
+- Span multiple decades and countries where relevant
+- Always add the release year in brackets after the title: "Title (YEAR)"
+- Be specific and confident — don't pad with vague matches
 
-Respond with ONLY a JSON array of film titles, no explanation:
-["Title One", "Title Two", "Title Three", ...]`,
+Respond with ONLY a valid JSON array, nothing else:
+["Film Title (1999)", "Another Film (2008)", ...]`,
     }],
   });
 
@@ -26,51 +32,74 @@ Respond with ONLY a JSON array of film titles, no explanation:
   return Array.isArray(parsed) ? parsed.filter((t): t is string => typeof t === "string") : [];
 }
 
-async function lookupFilm(title: string): Promise<Film | null> {
+async function lookupFilm(raw: string): Promise<Film | null> {
+  const yearMatch = raw.match(/^(.+?)\s*\((\d{4})\)\s*$/);
+  const title = yearMatch ? yearMatch[1].trim() : raw.trim();
+  const year = yearMatch ? yearMatch[2] : null;
+
   try {
     const res = await tmdb.search(title, "1") as TMDBResponse<Film>;
     const results = res.results ?? [];
     if (results.length === 0) return null;
 
-    // Prefer exact title match, otherwise take the most popular result
-    const exact = results.find(
-      (f) => f.title.toLowerCase() === title.toLowerCase()
-    );
-    return exact ?? results[0];
+    if (year) {
+      const byYear = results.find((f) => f.release_date?.startsWith(year));
+      if (byYear) return byYear;
+    }
+
+    return results.find((f) => f.title.toLowerCase() === title.toLowerCase()) ?? results[0];
   } catch {
     return null;
   }
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const { query } = await request.json();
-    if (!query?.trim()) {
-      return NextResponse.json({ error: "Query required" }, { status: 400 });
-    }
-
-    // Step 1: Ask Claude to name matching films
-    const titles = await getTitlesFromClaude(query.trim());
-    if (titles.length === 0) {
-      return NextResponse.json({ films: [], titles: [] });
-    }
-
-    // Step 2: Look up each title on TMDB (in parallel)
-    const lookups = await Promise.all(titles.map(lookupFilm));
-
-    // Step 3: Dedupe by TMDB id, drop nulls
-    const seen = new Set<number>();
-    const films: Film[] = [];
-    for (const film of lookups) {
-      if (film && !seen.has(film.id)) {
-        seen.add(film.id);
-        films.push(film);
-      }
-    }
-
-    return NextResponse.json({ films, titles });
-  } catch (err) {
-    console.error("[discover] error:", err);
-    return NextResponse.json({ error: "Discovery failed" }, { status: 500 });
+  const { query } = await request.json();
+  if (!query?.trim()) {
+    return new Response(JSON.stringify({ type: "error", message: "Query required" }), { status: 400 });
   }
+
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (obj: object) =>
+        controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"));
+
+      try {
+        const titles = await getTitlesFromClaude(query.trim());
+
+        send({ type: "total", count: titles.length });
+
+        const seen = new Set<number>();
+        await Promise.all(
+          titles.map(async (title) => {
+            const film = await lookupFilm(title);
+            if (
+              film &&
+              !seen.has(film.id) &&
+              (film.vote_count ?? 0) >= 50 &&
+              film.vote_average < 9.4
+            ) {
+              seen.add(film.id);
+              send({ type: "film", data: film });
+            }
+          })
+        );
+      } catch (err) {
+        send({ type: "error", message: String(err) });
+      } finally {
+        send({ type: "done" });
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "application/x-ndjson",
+      "Cache-Control": "no-cache",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }

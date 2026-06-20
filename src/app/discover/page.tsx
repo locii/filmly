@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
 import { Film } from "@/lib/types";
@@ -13,11 +13,47 @@ const EXAMPLES = [
   "Funny but heartwarming coming-of-age story",
 ];
 
+const LOADING_STEPS = [
+  "Asking Claude for film picks…",
+  "Searching TMDB for each film…",
+  "Fetching posters and ratings…",
+  "Almost there…",
+];
+
+const DiscoverLoader = memo(function DiscoverLoader() {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const timings = [1800, 3200, 5000]; // approximate ms when each step kicks in
+    const timers = timings.map((ms, i) =>
+      setTimeout(() => setStep(i + 1), ms)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center gap-4 py-16">
+      <div className="flex gap-1.5">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="w-2 h-2 rounded-full bg-amber-500 animate-bounce"
+            style={{ animationDelay: `${i * 0.15}s` }}
+          />
+        ))}
+      </div>
+      <p className="text-zinc-400 text-sm transition-all">{LOADING_STEPS[step]}</p>
+    </div>
+  );
+});
+
 export default function DiscoverPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [films, setFilms] = useState<Film[]>([]);
+  const [totalTitles, setTotalTitles] = useState(0);
+  const [streaming, setStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -26,8 +62,10 @@ export default function DiscoverPage() {
   const runSearch = useCallback(async (q: string) => {
     if (!q.trim() || loading) return;
     setLoading(true);
+    setStreaming(false);
     setError("");
     setFilms([]);
+    setTotalTitles(0);
     setSubmitted(true);
 
     try {
@@ -36,13 +74,38 @@ export default function DiscoverPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: q }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Something went wrong");
-      setFilms(data.films ?? []);
+      if (!res.ok || !res.body) throw new Error("Discovery failed");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      setLoading(false);
+      setStreaming(true);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const msg = JSON.parse(line);
+            if (msg.type === "total") setTotalTitles(msg.count);
+            else if (msg.type === "film") setFilms((prev) => [...prev, msg.data]);
+            else if (msg.type === "error") setError(msg.message);
+            else if (msg.type === "done") setStreaming(false);
+          } catch { /* ignore bad lines */ }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
+      setStreaming(false);
     }
   }, [loading]);
 
@@ -118,18 +181,18 @@ export default function DiscoverPage() {
 
       {error && <p className="text-amber-400 text-sm">{error}</p>}
 
-      {loading && (
-        <div className="flex flex-col items-center gap-3 py-12">
-          <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-zinc-400 text-sm">Searching for films…</p>
-        </div>
+      {loading && <DiscoverLoader />}
+
+      {(streaming || films.length > 0) && (
+        <SortableFilmGrid
+          films={films}
+          isStreaming={streaming}
+          totalTitles={totalTitles}
+          emptyMessage="No films found — try rephrasing your search."
+        />
       )}
 
-      {!loading && films.length > 0 && (
-        <SortableFilmGrid films={films} emptyMessage="No films found — try rephrasing your search." />
-      )}
-
-      {!loading && submitted && films.length === 0 && !error && (
+      {!loading && !streaming && submitted && films.length === 0 && !error && (
         <div className="text-center py-12">
           <p className="text-zinc-400">No films found. Try a different description.</p>
         </div>

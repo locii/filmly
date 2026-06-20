@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import MobileNav from "@/components/MobileNav";
 import { FavouritesProvider } from "@/context/FavouritesContext";
 
 export const metadata: Metadata = {
@@ -18,7 +19,8 @@ export default function RootLayout({
       <body>
         <FavouritesProvider>
           <Navbar />
-          <main className="min-h-screen pt-16">{children}</main>
+          <main className="min-h-screen pt-16 pb-16 sm:pb-0">{children}</main>
+          <MobileNav />
         </FavouritesProvider>
       </body>
     </html>

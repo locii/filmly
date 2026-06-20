@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import FilmCard from "./FilmCard";
 import { Film } from "@/lib/types";
 
@@ -30,6 +30,8 @@ function sortFilms(films: Film[], key: SortKey): Film[] {
 interface Props {
   films: Film[];
   emptyMessage?: string;
+  isStreaming?: boolean;   // true while discover is still loading more films
+  totalTitles?: number;    // how many titles Claude suggested (for streaming count)
   // For API-backed pagination — pass these to enable "Load more" via API
   totalPages?: number;
   currentPage?: number;
@@ -41,11 +43,23 @@ const PAGE_SIZE = 20;
 export default function SortableFilmGrid({
   films: initialFilms,
   emptyMessage = "No films found.",
+  isStreaming = false,
+  totalTitles,
   totalPages,
   currentPage = 1,
   fetchPage,
 }: Props) {
   const [allFilms, setAllFilms] = useState<Film[]>(initialFilms);
+  const seenIds = useRef(new Set(initialFilms.map((f) => f.id)));
+
+  // Append newly streamed films without resetting sort or visible page
+  useEffect(() => {
+    const incoming = initialFilms.filter((f) => !seenIds.current.has(f.id));
+    if (incoming.length > 0) {
+      incoming.forEach((f) => seenIds.current.add(f.id));
+      setAllFilms((prev) => [...prev, ...incoming]);
+    }
+  }, [initialFilms]);
   const [sort, setSort] = useState<SortKey>("default");
   // For in-memory pagination (no fetchPage)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -106,9 +120,21 @@ export default function SortableFilmGrid({
             {opt.label}
           </button>
         ))}
-        <span className="text-xs text-zinc-600 ml-auto">
-          {isApiMode ? allFilms.length : Math.min(visibleCount, sorted.length)} of {sorted.length}
-          {isApiMode && hasMoreApi ? "+" : ""} films
+        <span className="text-xs text-zinc-600 ml-auto flex items-center gap-1.5">
+          {isApiMode ? allFilms.length : Math.min(visibleCount, sorted.length)} of{" "}
+          {isStreaming ? (
+            <>
+              <span className="text-zinc-500">{sorted.length}</span>
+              <span className="text-zinc-600">
+                {totalTitles ? `(finding more of ~${totalTitles})` : "loading…"}
+              </span>
+            </>
+          ) : (
+            <>{sorted.length}{isApiMode && hasMoreApi ? "+" : ""}</>
+          )}{" "}
+          films{isStreaming && (
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+          )}
         </span>
       </div>
 
