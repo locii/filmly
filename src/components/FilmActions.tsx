@@ -39,7 +39,13 @@ export default function FilmActions({ film }: { film: Film }) {
 
   return (
     <div className="flex items-center gap-0.5">
-      <Tip label={onWatchlist ? "Remove from watchlist" : "Add to watchlist"}>
+      <Tip label={
+        onWatchlist
+          ? "Remove from watchlist"
+          : isWatched
+            ? "Add to watchlist to rewatch"
+            : "Add to watchlist"
+      }>
         <button
           onClick={() => act(async () => {
             if (onWatchlist) await removeInteraction(film.id, "watchlist");
@@ -60,6 +66,8 @@ export default function FilmActions({ film }: { film: Film }) {
           onClick={() => act(async () => {
             if (isWatched) { await removeInteraction(film.id, "watched"); }
             else {
+              // Marking watched clears the to-watch bookmark; re-bookmark later to rewatch.
+              if (onWatchlist) await removeInteraction(film.id, "watchlist", { silent: true });
               await addInteraction(film.id, film.title, film.poster_path, "watched", genres);
             }
           })}
@@ -73,7 +81,7 @@ export default function FilmActions({ film }: { film: Film }) {
         </button>
       </Tip>
 
-      <Tip label={isLiked ? "Unlike" : "I liked it"}>
+      <Tip label={isLiked ? "Remove recommendation" : "Recommend"}>
         <button
           onClick={() => act(async () => {
             if (isLiked) { await removeInteraction(film.id, "like"); }
@@ -92,7 +100,7 @@ export default function FilmActions({ film }: { film: Film }) {
         </button>
       </Tip>
 
-      <Tip label={isDisliked ? "Remove rating" : "Didn't like it"}>
+      <Tip label={isDisliked ? "Remove" : "Don't recommend"}>
         <button
           onClick={() => act(async () => {
             if (isDisliked) { await removeInteraction(film.id, "dislike"); }

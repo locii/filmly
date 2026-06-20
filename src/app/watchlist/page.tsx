@@ -106,13 +106,11 @@ export default function WatchlistPage() {
     return <div className="max-w-7xl mx-auto px-4 py-20 text-center text-zinc-500">Loading…</div>;
   }
 
+  // Watchlist and watched are independent. Marking a film watched clears its
+  // bookmark, so "To Watch" only shows films the user has actively bookmarked —
+  // including ones they've already watched and re-bookmarked to rewatch.
+  const toWatch = interactions.filter((i) => i.interaction === "watchlist");
   const watched = interactions.filter((i) => i.interaction === "watched");
-  const watchedIds = new Set(watched.map((i) => i.tmdb_id));
-  // A watched film stays bookmarked in the DB, but we hide it from "To Watch"
-  // so it only shows under the Watched tab.
-  const toWatch = interactions.filter(
-    (i) => i.interaction === "watchlist" && !watchedIds.has(i.tmdb_id)
-  );
   const total = toWatch.length + watched.length;
 
   return (

@@ -56,6 +56,8 @@ export default function FilmCard({ film }: { film: Film }) {
   const toggleWatched = () => act(async () => {
     if (isWatched) { await removeInteraction(film.id, "watched"); }
     else {
+      // Marking watched clears the to-watch bookmark; re-bookmark later to rewatch.
+      if (onWatchlist) await removeInteraction(film.id, "watchlist", { silent: true });
       await addInteraction(film.id, film.title, film.poster_path, "watched", genres);
     }
   });
@@ -104,16 +106,34 @@ export default function FilmCard({ film }: { film: Film }) {
         {/* Action buttons overlay the poster only — outside the Link */}
         {isLoggedIn && (
           <>
+            {/* Rewatch badge — bookmarked again after watching */}
+            {onWatchlist && isWatched && (
+              <div className="absolute top-2 left-2 mt-7 bg-amber-500/90 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded pointer-events-none flex items-center gap-0.5">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114-3m2 8a8 8 0 01-14 3" />
+                </svg>
+                Rewatch
+              </div>
+            )}
+
             {/* Watchlist — top right */}
             <div className="absolute top-2 right-2">
-              <Tip label={onWatchlist ? "Remove from watchlist" : "Add to watchlist"}>
+              <Tip label={
+                onWatchlist
+                  ? "Remove from watchlist"
+                  : isWatched
+                    ? "Add to watchlist to rewatch"
+                    : "Add to watchlist"
+              }>
                 <button
                   onClick={toggleWatchlist}
                   disabled={acting}
                   className={`w-7 h-7 flex items-center justify-center rounded-full backdrop-blur-sm transition-all
                     ${onWatchlist
                       ? "bg-amber-500/90 text-white opacity-100"
-                      : "bg-black/60 text-zinc-300 opacity-0 group-hover:opacity-100 hover:text-white hover:bg-black/80"}`}
+                      : anyActive
+                        ? "bg-black/60 text-zinc-300 opacity-100 hover:text-white hover:bg-black/80"
+                        : "bg-black/60 text-zinc-300 opacity-0 group-hover:opacity-100 hover:text-white hover:bg-black/80"}`}
                 >
                   <svg className="w-4 h-4" fill={onWatchlist ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -134,7 +154,7 @@ export default function FilmCard({ film }: { film: Film }) {
                 </svg>
               </button>
             </Tip>
-            <Tip label={isLiked ? "Unlike" : "I liked it"}>
+            <Tip label={isLiked ? "Remove recommendation" : "Recommend"}>
               <button onClick={toggleLike} disabled={acting}
                 className={`p-1.5 rounded-full backdrop-blur-sm transition-all
                   ${isLiked ? "bg-amber-500/90 text-white" : "bg-black/50 text-zinc-300 hover:text-white"}`}>
@@ -143,7 +163,7 @@ export default function FilmCard({ film }: { film: Film }) {
                 </svg>
               </button>
             </Tip>
-            <Tip label={isDisliked ? "Remove rating" : "Didn't like it"}>
+            <Tip label={isDisliked ? "Remove" : "Don't recommend"}>
               <button onClick={toggleDislike} disabled={acting}
                 className={`p-1.5 rounded-full backdrop-blur-sm transition-all
                   ${isDisliked ? "bg-zinc-500/90 text-white" : "bg-black/50 text-zinc-300 hover:text-white"}`}>

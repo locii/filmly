@@ -17,15 +17,15 @@ type InteractionType = "like" | "dislike" | "watchlist" | "watched";
 const ADD_TOAST: Record<InteractionType, { message: string; tone: "brand" | "green" | "yellow" | "red" }> = {
   watchlist: { message: "Added to watchlist", tone: "brand" },
   watched: { message: "Marked as watched", tone: "green" },
-  like: { message: "Liked", tone: "yellow" },
-  dislike: { message: "Marked as not interested", tone: "red" },
+  like: { message: "Recommended", tone: "yellow" },
+  dislike: { message: "Won't recommend", tone: "red" },
 };
 
 const REMOVE_TOAST: Record<InteractionType, string> = {
   watchlist: "Removed from watchlist",
   watched: "Removed from watched",
-  like: "Like removed",
-  dislike: "Removed from not interested",
+  like: "Recommendation removed",
+  dislike: "Removed",
 };
 
 interface FavouritesContextType {

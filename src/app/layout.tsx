@@ -6,7 +6,7 @@ import { FavouritesProvider } from "@/context/FavouritesContext";
 import { ToastProvider } from "@/context/ToastContext";
 
 export const metadata: Metadata = {
-  title: "Filmly",
+  title: "FilmStack",
   description: "Discover films you'll love",
 };
 

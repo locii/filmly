@@ -73,7 +73,7 @@ export default function AuthModal({ onClose }: Props) {
             <>
               <div className="text-center mb-6">
                 <div className="text-3xl mb-3">🎬</div>
-                <h2 className="text-xl font-bold text-white">Sign in to Filmly</h2>
+                <h2 className="text-xl font-bold text-white">Sign in to FilmStack</h2>
                 <p className="text-zinc-400 text-sm mt-1">
                   We&apos;ll email you a magic link — no password needed.
                 </p>

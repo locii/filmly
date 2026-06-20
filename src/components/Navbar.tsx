@@ -57,7 +57,7 @@ export default function Navbar() {
       <header className="fixed top-0 left-0 right-0 z-40 bg-zinc-950/90 backdrop-blur border-b border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-4">
           <Link href="/" className="font-bold text-xl tracking-tight shrink-0">
-            🎬 <span className="text-vanilla">Film</span><span className="text-brand">ly</span>
+            🎬 <span className="text-vanilla">Film</span><span className="text-brand">Stack</span>
           </Link>
 
           <div className="flex-1">
