@@ -1,0 +1,68 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { slugify } from "@/lib/slug";
+import { Film } from "@/lib/types";
+
+/**
+ * Publish a discover result as a public, shareable stack at /stacks/[slug].
+ * Signed-in users only (enforced here and by RLS). Always creates a new row;
+ * slug collisions get a numeric suffix (base, base-2, base-3, …).
+ */
+export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "You must be signed in to publish." }, { status: 401 });
+  }
+
+  let body: { query?: string; films?: Film[]; totalTitles?: number };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
+
+  const query = body.query?.trim();
+  const films = Array.isArray(body.films) ? body.films : [];
+
+  if (!query) {
+    return NextResponse.json({ error: "Query is required." }, { status: 400 });
+  }
+  if (films.length === 0) {
+    return NextResponse.json({ error: "No films to publish." }, { status: 400 });
+  }
+
+  const base = slugify(query);
+
+  // Find existing slugs in this family so we can pick the next free suffix.
+  const { data: existing } = await supabase
+    .from("published_stacks")
+    .select("slug")
+    .or(`slug.eq.${base},slug.like.${base}-%`);
+
+  const slug = nextFreeSlug(base, (existing ?? []).map((r) => r.slug as string));
+
+  const { error } = await supabase.from("published_stacks").insert({
+    slug,
+    query,
+    films,
+    total_titles: typeof body.totalTitles === "number" ? body.totalTitles : films.length,
+    created_by: user.id,
+  });
+
+  if (error) {
+    return NextResponse.json({ error: "Couldn't publish — please try again." }, { status: 500 });
+  }
+
+  return NextResponse.json({ slug });
+}
+
+/** Pick `base`, or `base-N` for the smallest N≥2 not already taken. */
+function nextFreeSlug(base: string, taken: string[]): string {
+  const set = new Set(taken);
+  if (!set.has(base)) return base;
+  let n = 2;
+  while (set.has(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
+}

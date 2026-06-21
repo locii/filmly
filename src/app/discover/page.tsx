@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
+import { useFavourites } from "@/context/FavouritesContext";
 import { Film } from "@/lib/types";
 
 const EXAMPLES = [
@@ -86,6 +87,7 @@ const DiscoverLoader = memo(function DiscoverLoader() {
 export default function DiscoverPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isLoggedIn } = useFavourites();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [films, setFilms] = useState<Film[]>([]);
   const [totalTitles, setTotalTitles] = useState(0);
@@ -94,7 +96,32 @@ export default function DiscoverPage() {
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [fromCache, setFromCache] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
+  const [publishError, setPublishError] = useState("");
+  const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const publishStack = useCallback(async () => {
+    if (publishing || films.length === 0) return;
+    setPublishing(true);
+    setPublishError("");
+    setCopied(false);
+    try {
+      const res = await fetch("/api/stacks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: query.trim(), films, totalTitles }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Couldn't publish");
+      setPublishedSlug(data.slug);
+    } catch (err) {
+      setPublishError(err instanceof Error ? err.message : "Couldn't publish");
+    } finally {
+      setPublishing(false);
+    }
+  }, [publishing, films, query, totalTitles]);
 
   const restoreFromCache = useCallback((q: string, entry: CacheEntry) => {
     setFilms(entry.films);
@@ -103,6 +130,8 @@ export default function DiscoverPage() {
     setLoading(false);
     setSubmitted(true);
     setFromCache(true);
+    setPublishedSlug(null);
+    setPublishError("");
     setQuery(q);
   }, []);
 
@@ -123,6 +152,8 @@ export default function DiscoverPage() {
     setTotalTitles(0);
     setSubmitted(true);
     setFromCache(false);
+    setPublishedSlug(null);
+    setPublishError("");
 
     const collectedFilms: Film[] = [];
     let collectedTotal = 0;
@@ -266,6 +297,60 @@ export default function DiscoverPage() {
       {error && <p className="text-amber-400 text-sm">{error}</p>}
 
       {loading && <DiscoverLoader />}
+
+      {!loading && !streaming && films.length > 0 && isLoggedIn && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3">
+          {publishedSlug ? (
+            <>
+              <span className="text-sm text-zinc-300">Published:</span>
+              <a
+                href={`/stacks/${publishedSlug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-amber-400 hover:text-amber-300 underline underline-offset-2 truncate max-w-full"
+              >
+                /stacks/{publishedSlug}
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  const url = `${window.location.origin}/stacks/${publishedSlug}`;
+                  navigator.clipboard?.writeText(url);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="ml-auto text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg transition"
+              >
+                {copied ? "Copied!" : "Copy link"}
+              </button>
+              <button
+                type="button"
+                onClick={publishStack}
+                disabled={publishing}
+                className="text-xs text-zinc-500 hover:text-zinc-300 transition disabled:opacity-40"
+              >
+                {publishing ? "Publishing…" : "Publish again"}
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="text-sm text-zinc-300">
+                <span className="font-medium text-white">Publish this stack</span>
+                <span className="text-zinc-500"> — make a shareable public link.</span>
+              </div>
+              <button
+                type="button"
+                onClick={publishStack}
+                disabled={publishing}
+                className="ml-auto bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                {publishing ? "Publishing…" : "Publish"}
+              </button>
+            </>
+          )}
+          {publishError && <p className="w-full text-amber-400 text-xs">{publishError}</p>}
+        </div>
+      )}
 
       {(streaming || films.length > 0) && (
         <SortableFilmGrid
