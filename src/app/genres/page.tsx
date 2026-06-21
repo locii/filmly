@@ -1,6 +1,20 @@
+import type { Metadata } from "next";
 import { tmdb, TMDB_IMAGE_BASE } from "@/lib/tmdb";
 import { Genre, Film, TMDBResponse } from "@/lib/types";
+import { absoluteUrl } from "@/lib/seo";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Browse genres",
+  description: "Explore films by genre — action, drama, sci-fi, horror and more.",
+  alternates: { canonical: absoluteUrl("/genres") },
+  openGraph: {
+    title: "Browse genres",
+    description: "Explore films by genre — action, drama, sci-fi, horror and more.",
+    url: absoluteUrl("/genres"),
+    type: "website",
+  },
+};
 
 export default async function GenresPage() {
   const data = await tmdb.genres() as { genres: Genre[] };

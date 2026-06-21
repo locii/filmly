@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
+import JsonLd from "@/components/JsonLd";
+import { absoluteUrl, filmOgImage } from "@/lib/seo";
 import { Film } from "@/lib/types";
 
 interface Props {
@@ -29,15 +31,24 @@ async function getStack(slug: string): Promise<Stack | null> {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const stack = await getStack(slug);
-  if (!stack) return { title: "Stack not found · FilmStack" };
+  if (!stack) return { title: "Stack not found", robots: { index: false } };
 
-  const title = `${stack.query} · FilmStack`;
-  const description = `A hand-picked stack of ${stack.films.length} films: ${stack.query}.`;
+  // Unfurl image comes from the first film in the stack.
+  const images = filmOgImage(stack.films[0], stack.query);
+  const url = absoluteUrl(`/stacks/${slug}`);
+  const description = `A curated stack of ${stack.films.length} films: ${stack.query}.`;
+
   return {
-    title,
+    title: stack.query,
     description,
-    openGraph: { title, description, type: "website" },
-    twitter: { card: "summary", title, description },
+    alternates: { canonical: url },
+    openGraph: { title: stack.query, description, url, type: "website", images },
+    twitter: {
+      card: images.length ? "summary_large_image" : "summary",
+      title: stack.query,
+      description,
+      images: images.map((i) => i.url),
+    },
   };
 }
 
@@ -46,8 +57,27 @@ export default async function StackPage({ params }: Props) {
   const stack = await getStack(slug);
   if (!stack) notFound();
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: stack.query,
+    url: absoluteUrl(`/stacks/${slug}`),
+    numberOfItems: stack.films.length,
+    itemListElement: stack.films.slice(0, 50).map((film, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      item: {
+        "@type": "Movie",
+        name: film.title,
+        url: absoluteUrl(`/films/${film.id}`),
+        ...(film.release_date ? { datePublished: film.release_date } : {}),
+      },
+    })),
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-12 space-y-10">
+      <JsonLd data={jsonLd} />
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-wider text-amber-500 font-medium">Film stack</p>
         <h1 className="text-3xl sm:text-4xl font-bold text-white">{stack.query}</h1>

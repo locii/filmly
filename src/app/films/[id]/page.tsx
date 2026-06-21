@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { tmdb, TMDB_IMAGE_BASE } from "@/lib/tmdb";
@@ -7,7 +8,9 @@ import TrailerPlayer from "@/components/TrailerPlayer";
 import HeroSection from "@/components/HeroSection";
 import FilmActions from "@/components/FilmActions";
 import WatchProviders from "@/components/WatchProviders";
+import JsonLd from "@/components/JsonLd";
 import { getWatchmodeDeepLinks } from "@/lib/watchmode";
+import { absoluteUrl, filmOgImage } from "@/lib/seo";
 
 // Region used for "Where to watch" provider data. Override via env.
 const WATCH_REGION = process.env.NEXT_PUBLIC_WATCH_REGION ?? "GB";
@@ -18,6 +21,40 @@ function slugify(name: string) {
 
 interface Props {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const filmId = parseInt(id.split("-")[0], 10);
+  if (isNaN(filmId)) return { title: "Film not found", robots: { index: false } };
+
+  let film: FilmDetail | null = null;
+  try {
+    film = await tmdb.filmDetails(filmId) as FilmDetail;
+  } catch {
+    return { title: "Film not found", robots: { index: false } };
+  }
+  if (!film) return { title: "Film not found", robots: { index: false } };
+
+  const year = film.release_date?.slice(0, 4);
+  const title = year ? `${film.title} (${year})` : film.title;
+  const description =
+    film.overview?.slice(0, 200) || `${film.title} — cast, trailer, ratings and where to watch.`;
+  const images = filmOgImage(film, film.title);
+  const url = absoluteUrl(`/films/${filmId}-${slugify(film.title)}`);
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, type: "video.movie", images },
+    twitter: {
+      card: images.length ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: images.map((i) => i.url),
+    },
+  };
 }
 
 export default async function FilmPage({ params }: Props) {
@@ -87,8 +124,47 @@ export default async function FilmPage({ params }: Props) {
     }
   }
 
+  const movieJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Movie",
+    name: film.title,
+    url: absoluteUrl(`/films/${filmId}-${slugify(film.title)}`),
+    ...(film.overview ? { description: film.overview } : {}),
+    ...(posterUrl ? { image: posterUrl } : {}),
+    ...(film.release_date ? { datePublished: film.release_date } : {}),
+    ...(film.runtime ? { duration: `PT${film.runtime}M` } : {}),
+    ...(film.genres?.length ? { genre: film.genres.map((g) => g.name) } : {}),
+    ...(director ? { director: { "@type": "Person", name: director.name } } : {}),
+    ...(cast.length
+      ? { actor: cast.map((c) => ({ "@type": "Person", name: c.name })) }
+      : {}),
+    ...(trailer
+      ? {
+          trailer: {
+            "@type": "VideoObject",
+            name: `${film.title} Trailer`,
+            embedUrl: `https://www.youtube.com/embed/${trailer.key}`,
+            ...(backdropUrl ? { thumbnailUrl: backdropUrl } : {}),
+            ...(film.release_date ? { uploadDate: film.release_date } : {}),
+          },
+        }
+      : {}),
+    ...(film.vote_count && film.vote_average
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: film.vote_average.toFixed(1),
+            ratingCount: film.vote_count,
+            bestRating: 10,
+            worstRating: 0,
+          },
+        }
+      : {}),
+  };
+
   return (
     <div>
+      <JsonLd data={movieJsonLd} />
       <HeroSection
         backdropUrl={backdropUrl}
         title={film.title}

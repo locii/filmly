@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { tmdb, TMDB_IMAGE_BASE } from "@/lib/tmdb";
 import { Person, Film } from "@/lib/types";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
+import JsonLd from "@/components/JsonLd";
+import { absoluteUrl, posterOgImage } from "@/lib/seo";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -10,6 +13,39 @@ interface Props {
 
 function slugify(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const personId = parseInt(id.split("-")[0], 10);
+  if (isNaN(personId)) return { title: "Person not found", robots: { index: false } };
+
+  let person: Person | null = null;
+  try {
+    person = await tmdb.person(personId) as Person;
+  } catch {
+    return { title: "Person not found", robots: { index: false } };
+  }
+  if (!person) return { title: "Person not found", robots: { index: false } };
+
+  const description =
+    person.biography?.slice(0, 200) ||
+    `${person.name} — ${person.known_for_department}. Filmography on FilmStack.`;
+  const images = posterOgImage(person.profile_path, person.name);
+  const url = absoluteUrl(`/people/${personId}-${slugify(person.name)}`);
+
+  return {
+    title: person.name,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title: person.name, description, url, type: "profile", images },
+    twitter: {
+      card: images.length ? "summary" : "summary",
+      title: person.name,
+      description,
+      images: images.map((i) => i.url),
+    },
+  };
 }
 
 export default async function PersonPage({ params }: Props) {
@@ -60,8 +96,22 @@ export default async function PersonPage({ params }: Props) {
       )
     : null;
 
+  const personJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: person.name,
+    url: absoluteUrl(`/people/${personId}-${slugify(person.name)}`),
+    ...(photoUrl ? { image: photoUrl } : {}),
+    ...(person.biography ? { description: person.biography } : {}),
+    ...(person.birthday ? { birthDate: person.birthday } : {}),
+    ...(person.deathday ? { deathDate: person.deathday } : {}),
+    ...(person.place_of_birth ? { birthPlace: person.place_of_birth } : {}),
+    ...(person.known_for_department ? { jobTitle: person.known_for_department } : {}),
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-10 space-y-12">
+      <JsonLd data={personJsonLd} />
       {/* Header */}
       <div className="flex gap-6 items-start">
         {photoUrl ? (

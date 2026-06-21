@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import SearchResults from "@/components/SearchResults";
@@ -6,6 +7,20 @@ import { Film, TMDBResponse } from "@/lib/types";
 
 interface Props {
   searchParams: Promise<{ q?: string }>;
+}
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const { q } = await searchParams;
+  const query = q?.trim();
+  const title = query ? `Search: ${query}` : "Search films & people";
+  return {
+    title,
+    description: query
+      ? `Search results for "${query}" — films and people on FilmStack.`
+      : "Search for films and people on FilmStack.",
+    // Search-result pages shouldn't be indexed (thin/duplicate content).
+    robots: { index: false, follow: true },
+  };
 }
 
 type PersonResult = {

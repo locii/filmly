@@ -4,10 +4,31 @@ import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 import { FavouritesProvider } from "@/context/FavouritesContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { SITE_URL, SITE_NAME } from "@/lib/seo";
+
+const DEFAULT_DESCRIPTION =
+  "Discover films you'll love — search by vibe, browse genres, and share curated stacks.";
 
 export const metadata: Metadata = {
-  title: "FilmStack",
-  description: "Discover films you'll love",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE_NAME} — Discover films you'll love`,
+    template: `%s · ${SITE_NAME}`,
+  },
+  description: DEFAULT_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: {
+    siteName: SITE_NAME,
+    type: "website",
+    url: SITE_URL,
+    title: `${SITE_NAME} — Discover films you'll love`,
+    description: DEFAULT_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — Discover films you'll love`,
+    description: DEFAULT_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({

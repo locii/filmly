@@ -1,9 +1,26 @@
 import FilmGrid from "@/components/FilmGrid";
 import DiscoverPanel from "@/components/DiscoverPanel";
+import JsonLd from "@/components/JsonLd";
 import { tmdb } from "@/lib/tmdb";
 import { createClient } from "@/lib/supabase/server";
+import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import { TMDBResponse, Film } from "@/lib/types";
 import Link from "next/link";
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  url: SITE_URL,
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
+  },
+};
 
 export default async function HomePage() {
   const [trending, popular] = await Promise.all([
@@ -16,6 +33,7 @@ export default async function HomePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      <JsonLd data={websiteJsonLd} />
       {/* Hero */}
       <div className="text-left py-8">
         {user ? (
