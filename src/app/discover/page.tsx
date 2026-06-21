@@ -14,8 +14,8 @@ const EXAMPLES = [
 ];
 
 const LOADING_STEPS = [
-  "Asking Claude for film picks…",
-  "Searching TMDB for each film…",
+  "Finding films that match…",
+  "Searching the catalogue…",
   "Fetching posters and ratings…",
   "Almost there…",
 ];

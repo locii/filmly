@@ -22,10 +22,15 @@ export default function AuthModal({ onClose }: Props) {
     setLoading(true);
     setError(null);
 
+    // Prefer the canonical site URL so links always point at production,
+    // even when signing in from a preview/local deploy. Falls back to the
+    // current origin when the env var isn't set.
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${siteUrl}/auth/callback`,
       },
     });
 
