@@ -66,6 +66,28 @@ export interface FilmDetail extends Film {
   credits?: { cast: CastMember[]; crew: CrewMember[] };
 }
 
+export interface WatchProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string | null;
+  display_priority: number;
+}
+
+// One country's worth of /watch/providers data
+export interface WatchProviderRegion {
+  link: string;            // JustWatch aggregator deep-link (required by their terms)
+  flatrate?: WatchProvider[];
+  free?: WatchProvider[];
+  ads?: WatchProvider[];
+  rent?: WatchProvider[];
+  buy?: WatchProvider[];
+}
+
+export interface WatchProvidersResponse {
+  id: number;
+  results: Record<string, WatchProviderRegion>;
+}
+
 export interface FilmInteraction {
   id: string;
   user_id: string;

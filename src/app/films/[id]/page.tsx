@@ -1,11 +1,16 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { tmdb, TMDB_IMAGE_BASE } from "@/lib/tmdb";
-import { Film, FilmDetail, Video, CastMember, CrewMember, TMDBResponse } from "@/lib/types";
+import { Film, FilmDetail, Video, CastMember, CrewMember, TMDBResponse, WatchProvidersResponse } from "@/lib/types";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
 import TrailerPlayer from "@/components/TrailerPlayer";
 import HeroSection from "@/components/HeroSection";
 import FilmActions from "@/components/FilmActions";
+import WatchProviders from "@/components/WatchProviders";
+import { getWatchmodeDeepLinks } from "@/lib/watchmode";
+
+// Region used for "Where to watch" provider data. Override via env.
+const WATCH_REGION = process.env.NEXT_PUBLIC_WATCH_REGION ?? "GB";
 
 function slugify(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -29,11 +34,12 @@ export default async function FilmPage({ params }: Props) {
   if (!film) notFound();
 
   // Non-fatal parallel fetches — page renders even if these fail
-  const [videosData, creditsData, recsData, similarData] = await Promise.all([
+  const [videosData, creditsData, recsData, similarData, providersData] = await Promise.all([
     tmdb.filmVideos(filmId).catch(() => ({ results: [] as Video[] })) as Promise<{ results: Video[] }>,
     tmdb.filmCredits(filmId).catch(() => ({ cast: [] as CastMember[], crew: [] as CrewMember[] })) as Promise<{ cast: CastMember[]; crew: CrewMember[] }>,
     tmdb.recommendations(filmId).catch(() => ({ results: [] as Film[] })) as Promise<TMDBResponse<Film>>,
     tmdb.similar(filmId).catch(() => ({ results: [] as Film[] })) as Promise<TMDBResponse<Film>>,
+    tmdb.watchProviders(filmId).catch(() => ({ id: filmId, results: {} })) as Promise<WatchProvidersResponse>,
   ]);
 
   const backdropUrl = film.backdrop_path
@@ -58,6 +64,12 @@ export default async function FilmPage({ params }: Props) {
 
   const director = creditsData.crew.find((c) => c.job === "Director");
   const cast = creditsData.cast.slice(0, 10);
+
+  const watchRegion = providersData.results?.[WATCH_REGION];
+  // Only call Watchmode when there's something to deep-link (saves API quota).
+  const watchDeepLinks = watchRegion
+    ? await getWatchmodeDeepLinks(filmId, WATCH_REGION).catch(() => ({}))
+    : {};
 
   // Merge recommendations + similar, deduplicate, exclude the current film
   // Interleave so we get variety rather than all recs first then all similar
@@ -134,6 +146,11 @@ export default async function FilmPage({ params }: Props) {
         {/* Overview */}
         {film.overview && (
           <p className="text-zinc-300 max-w-3xl text-base leading-relaxed">{film.overview}</p>
+        )}
+
+        {/* Where to watch */}
+        {watchRegion && (
+          <WatchProviders region={watchRegion} regionCode={WATCH_REGION} deepLinks={watchDeepLinks} />
         )}
 
         {/* Trailer */}

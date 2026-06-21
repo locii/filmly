@@ -69,6 +69,9 @@ export const tmdb = {
   filmCredits: (id: number) =>
     tmdbFetch(`/movie/${id}/credits`),
 
+  watchProviders: (id: number) =>
+    tmdbFetch(`/movie/${id}/watch/providers`),
+
   recommendations: (id: number, page = "1") =>
     tmdbFetch(`/movie/${id}/recommendations`, { page }),
 
