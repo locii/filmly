@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import BrandMark from "./BrandMark";
 
 interface Props {
   onClose: () => void;
@@ -72,7 +73,7 @@ export default function AuthModal({ onClose }: Props) {
           ) : (
             <>
               <div className="text-center mb-6">
-                <div className="text-3xl mb-3">🎬</div>
+                <div className="flex justify-center mb-3"><BrandMark className="w-10 h-10" /></div>
                 <h2 className="text-xl font-bold text-white">Sign in to FilmStack</h2>
                 <p className="text-zinc-400 text-sm mt-1">
                   We&apos;ll email you a magic link — no password needed.
