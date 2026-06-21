@@ -1,6 +1,7 @@
 import FilmGrid from "@/components/FilmGrid";
 import DiscoverPanel from "@/components/DiscoverPanel";
 import { tmdb } from "@/lib/tmdb";
+import { createClient } from "@/lib/supabase/server";
 import { TMDBResponse, Film } from "@/lib/types";
 import Link from "next/link";
 
@@ -10,14 +11,26 @@ export default async function HomePage() {
     tmdb.popular() as Promise<TMDBResponse<Film>>,
   ]);
 
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
       {/* Hero */}
       <div className="text-left py-8">
-        <h1 className="text-4xl font-bold text-white mb-3">What kind of film do you want to watch?</h1>
-        
-
-        <DiscoverPanel />
+        {user ? (
+          <>
+            <h1 className="text-4xl font-bold text-white mb-3">What kind of film do you want to watch?</h1>
+            <DiscoverPanel />
+          </>
+        ) : (
+          <>
+            <h1 className="text-4xl font-bold text-white mb-3">Find your next favourite film.</h1>
+            <p className="text-zinc-400 text-lg">
+              Browse what&apos;s trending — or sign in to search by vibe, save a watchlist, and get recommendations.
+            </p>
+          </>
+        )}
       </div>
 
       <hr className="border-zinc-800" />

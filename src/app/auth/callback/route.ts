@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { notifySignIn } from "@/lib/notify";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -7,7 +8,11 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const supabase = await createClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const { data } = await supabase.auth.exchangeCodeForSession(code);
+    const email = data?.user?.email ?? data?.session?.user?.email;
+    if (email) {
+      await notifySignIn(email);
+    }
   }
 
   return NextResponse.redirect(origin);
