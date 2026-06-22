@@ -100,10 +100,20 @@ export default function DiscoverPage() {
   const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
   const [publishError, setPublishError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [removedIds, setRemovedIds] = useState<Set<number>>(new Set());
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Films the user has chosen to keep (removed ones are excluded from publishing).
+  const keptFilms = films.filter((f) => !removedIds.has(f.id));
+
+  const handleRemoveFilm = useCallback((film: Film) => {
+    setRemovedIds((prev) => new Set(prev).add(film.id));
+    // Editing invalidates any previously published version of this stack.
+    setPublishedSlug(null);
+  }, []);
+
   const publishStack = useCallback(async () => {
-    if (publishing || films.length === 0) return;
+    if (publishing || keptFilms.length === 0) return;
     setPublishing(true);
     setPublishError("");
     setCopied(false);
@@ -111,7 +121,7 @@ export default function DiscoverPage() {
       const res = await fetch("/api/stacks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: query.trim(), films, totalTitles }),
+        body: JSON.stringify({ query: query.trim(), films: keptFilms, totalTitles }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Couldn't publish");
@@ -121,7 +131,7 @@ export default function DiscoverPage() {
     } finally {
       setPublishing(false);
     }
-  }, [publishing, films, query, totalTitles]);
+  }, [publishing, keptFilms, query, totalTitles]);
 
   const restoreFromCache = useCallback((q: string, entry: CacheEntry) => {
     setFilms(entry.films);
@@ -132,6 +142,7 @@ export default function DiscoverPage() {
     setFromCache(true);
     setPublishedSlug(null);
     setPublishError("");
+    setRemovedIds(new Set());
     setQuery(q);
   }, []);
 
@@ -154,6 +165,7 @@ export default function DiscoverPage() {
     setFromCache(false);
     setPublishedSlug(null);
     setPublishError("");
+    setRemovedIds(new Set());
 
     const collectedFilms: Film[] = [];
     let collectedTotal = 0;
@@ -253,7 +265,7 @@ export default function DiscoverPage() {
           placeholder="I want to watch a gritty noir film with an anti-hero arc…"
           className="w-full bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 resize-none focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition text-sm sm:text-base"
         />
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           {fromCache && films.length > 0 ? (
             <button
               type="button"
@@ -269,14 +281,52 @@ export default function DiscoverPage() {
           ) : (
             <span />
           )}
-          <button
-            type="submit"
-            disabled={loading || !query.trim()}
-            className="bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition"
-          >
-            {loading ? "Searching…" : "Find films"}
-          </button>
+
+          <div className="flex items-center gap-2 ml-auto">
+            {!loading && !streaming && keptFilms.length > 0 && isLoggedIn && (
+              publishedSlug ? (
+                <>
+                  <a
+                    href={`/stacks/${publishedSlug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2 whitespace-nowrap"
+                  >
+                    View stack ↗
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(`${window.location.origin}/stacks/${publishedSlug}`);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="text-sm font-semibold px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-100 transition"
+                  >
+                    {copied ? "Copied!" : "Copy link"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={publishStack}
+                  disabled={publishing}
+                  className="text-sm font-semibold px-4 py-2 rounded-lg border border-amber-500/60 text-amber-400 hover:bg-amber-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition whitespace-nowrap"
+                >
+                  {publishing ? "Publishing…" : "Publish stack"}
+                </button>
+              )
+            )}
+            <button
+              type="submit"
+              disabled={loading || !query.trim()}
+              className="bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              {loading ? "Searching…" : "Find films"}
+            </button>
+          </div>
         </div>
+        {publishError && <p className="text-amber-400 text-xs">{publishError}</p>}
 
         {!submitted && (
           <div className="flex flex-wrap gap-2">
@@ -298,65 +348,12 @@ export default function DiscoverPage() {
 
       {loading && <DiscoverLoader />}
 
-      {!loading && !streaming && films.length > 0 && isLoggedIn && (
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3">
-          {publishedSlug ? (
-            <>
-              <span className="text-sm text-zinc-300">Published:</span>
-              <a
-                href={`/stacks/${publishedSlug}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-amber-400 hover:text-amber-300 underline underline-offset-2 truncate max-w-full"
-              >
-                /stacks/{publishedSlug}
-              </a>
-              <button
-                type="button"
-                onClick={() => {
-                  const url = `${window.location.origin}/stacks/${publishedSlug}`;
-                  navigator.clipboard?.writeText(url);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-                className="ml-auto text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg transition"
-              >
-                {copied ? "Copied!" : "Copy link"}
-              </button>
-              <button
-                type="button"
-                onClick={publishStack}
-                disabled={publishing}
-                className="text-xs text-zinc-500 hover:text-zinc-300 transition disabled:opacity-40"
-              >
-                {publishing ? "Publishing…" : "Publish again"}
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="text-sm text-zinc-300">
-                <span className="font-medium text-white">Publish this stack</span>
-                <span className="text-zinc-500"> — make a shareable public link.</span>
-              </div>
-              <button
-                type="button"
-                onClick={publishStack}
-                disabled={publishing}
-                className="ml-auto bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition"
-              >
-                {publishing ? "Publishing…" : "Publish"}
-              </button>
-            </>
-          )}
-          {publishError && <p className="w-full text-amber-400 text-xs">{publishError}</p>}
-        </div>
-      )}
-
       {(streaming || films.length > 0) && (
         <SortableFilmGrid
           films={films}
           isStreaming={streaming}
           totalTitles={totalTitles}
+          onRemove={handleRemoveFilm}
           emptyMessage="No films found — try rephrasing your search."
         />
       )}

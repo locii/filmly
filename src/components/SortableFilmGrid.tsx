@@ -36,6 +36,9 @@ interface Props {
   totalPages?: number;
   currentPage?: number;
   fetchPage?: (page: number) => Promise<Film[]>;
+  // When provided, each card shows a remove button; the film is dropped from the
+  // grid and the callback fires (used on Discover to curate a stack before publishing).
+  onRemove?: (film: Film) => void;
 }
 
 const PAGE_SIZE = 20;
@@ -48,6 +51,7 @@ export default function SortableFilmGrid({
   totalPages,
   currentPage = 1,
   fetchPage,
+  onRemove,
 }: Props) {
   const [allFilms, setAllFilms] = useState<Film[]>(initialFilms);
   const seenIds = useRef(new Set(initialFilms.map((f) => f.id)));
@@ -74,6 +78,13 @@ export default function SortableFilmGrid({
   const displayed = isApiMode ? sorted : sorted.slice(0, visibleCount);
   const hasMoreInMemory = !isApiMode && visibleCount < sorted.length;
   const hasMoreApi = isApiMode && totalPages !== undefined && page < totalPages;
+
+  const handleRemove = useCallback((film: Film) => {
+    // Drop it from the display. Keep its id in seenIds so the streaming effect
+    // above doesn't re-add it if the parent's film list still contains it.
+    setAllFilms((prev) => prev.filter((f) => f.id !== film.id));
+    onRemove?.(film);
+  }, [onRemove]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore) return;
@@ -141,7 +152,11 @@ export default function SortableFilmGrid({
       {/* Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {displayed.map((film) => (
-          <FilmCard key={film.id} film={film} />
+          <FilmCard
+            key={film.id}
+            film={film}
+            onRemove={onRemove ? () => handleRemove(film) : undefined}
+          />
         ))}
       </div>
 

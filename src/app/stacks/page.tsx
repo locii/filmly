@@ -39,10 +39,18 @@ export default async function StacksIndexPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12 space-y-8">
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-wider text-amber-500 font-medium">Film stacks</p>
-        <h1 className="text-3xl sm:text-4xl font-bold text-white">Published stacks</h1>
-        <p className="text-zinc-400">Curated, shareable collections — pick one and start watching.</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-wider text-amber-500 font-medium">Film stacks</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">Published stacks</h1>
+          <p className="text-zinc-400">Curated, shareable collections — pick one and start watching.</p>
+        </div>
+        <Link
+          href="/stacks/new"
+          className="shrink-0 bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+        >
+          + Create stack
+        </Link>
       </div>
 
       {stacks.length === 0 ? (

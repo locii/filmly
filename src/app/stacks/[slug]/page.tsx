@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
 import JsonLd from "@/components/JsonLd";
+import ShareButtons from "@/components/ShareButtons";
 import { absoluteUrl, filmOgImage } from "@/lib/seo";
 import { Film } from "@/lib/types";
 
@@ -78,10 +79,13 @@ export default async function StackPage({ params }: Props) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-12 space-y-10">
       <JsonLd data={jsonLd} />
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-wider text-amber-500 font-medium">Film stack</p>
-        <h1 className="text-3xl sm:text-4xl font-bold text-white">{stack.query}</h1>
-        <p className="text-zinc-400">{stack.films.length} films</p>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-wider text-amber-500 font-medium">Film stack</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">{stack.query}</h1>
+          <p className="text-zinc-400">{stack.films.length} films</p>
+        </div>
+        <ShareButtons url={absoluteUrl(`/stacks/${slug}`)} title={stack.query} />
       </div>
 
       <SortableFilmGrid films={stack.films} emptyMessage="This stack is empty." />

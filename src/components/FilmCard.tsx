@@ -27,7 +27,7 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export default function FilmCard({ film }: { film: Film }) {
+export default function FilmCard({ film, onRemove }: { film: Film; onRemove?: () => void }) {
   const { addInteraction, removeInteraction, getInteraction, isLoggedIn } = useFavourites();
   const [acting, setActing] = useState(false);
 
@@ -97,11 +97,27 @@ export default function FilmCard({ film }: { film: Film }) {
                 </svg>
               </div>
             )}
-            <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-yellow-400 text-xs font-bold px-2 py-0.5 rounded pointer-events-none">
+            <div className={`absolute top-2 ${onRemove ? "left-11" : "left-2"} bg-black/70 backdrop-blur-sm text-yellow-400 text-xs font-bold px-2 py-0.5 rounded pointer-events-none`}>
               ★ {rating}
             </div>
           </div>
         </Link>
+
+        {/* Remove from stack — outside the Link so it doesn't navigate */}
+        {onRemove && (
+          <Tip label="Remove from stack">
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(); }}
+              aria-label={`Remove ${film.title}`}
+              className="absolute top-2 left-2 z-20 w-7 h-7 flex items-center justify-center rounded-full bg-black/70 text-zinc-200 hover:bg-red-600 hover:text-white backdrop-blur-sm transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </Tip>
+        )}
 
         {/* Action buttons overlay the poster only — outside the Link */}
         {isLoggedIn && (
