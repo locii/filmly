@@ -73,6 +73,9 @@ export default function Navbar() {
             <Link href="/discover" className={navClass("/discover")}>
               Discover
             </Link>
+            <Link href="/stacks" className={navClass("/stacks")}>
+              Stacks
+            </Link>
 
             {user ? (
               <>

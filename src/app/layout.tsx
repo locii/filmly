@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
+import Footer from "@/components/Footer";
 import { FavouritesProvider } from "@/context/FavouritesContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
@@ -42,7 +43,8 @@ export default function RootLayout({
         <ToastProvider>
           <FavouritesProvider>
             <Navbar />
-            <main className="min-h-screen pt-16 pb-16 sm:pb-0">{children}</main>
+            <main className="min-h-screen pt-16">{children}</main>
+            <Footer />
             <MobileNav />
           </FavouritesProvider>
         </ToastProvider>
