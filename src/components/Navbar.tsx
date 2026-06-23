@@ -150,7 +150,7 @@ export default function Navbar() {
               <>
                 {user.email && (
                   <div className="px-3 pb-2">
-                    <p className="text-xs text-zinc-500">Signed in as</p>
+                    <p className="text-xs text-zinc-500 pt-4">Signed in as</p>
                     <p className="text-sm text-zinc-200 truncate">{user.email}</p>
                   </div>
                 )}
