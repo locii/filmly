@@ -109,6 +109,14 @@ export default function Navbar() {
                         </div>
                       )}
                       <Link
+                        href="/watchlist"
+                        role="menuitem"
+                        onClick={() => setMenuOpen(false)}
+                        className="block px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+                      >
+                        Watchlist
+                      </Link>
+                      <Link
                         href="/my-stacks"
                         role="menuitem"
                         onClick={() => setMenuOpen(false)}
@@ -119,7 +127,7 @@ export default function Navbar() {
                       <button
                         onClick={handleSignOut}
                         role="menuitem"
-                        className="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+                        className="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors border-t border-zinc-800"
                       >
                         Sign out
                       </button>
