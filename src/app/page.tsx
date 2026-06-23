@@ -91,12 +91,6 @@ export default async function HomePage() {
           <FilmGrid films={latestStack.films.slice(0, 12)} />
         </section>
       )}
-
-      {/* Popular */}
-      <section>
-        <h2 className="text-xl font-semibold text-white mb-4">Popular right now</h2>
-        <FilmGrid films={popular.results.slice(0, 12)} />
-      </section>
     </div>
   );
 }
