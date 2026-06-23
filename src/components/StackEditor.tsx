@@ -47,6 +47,12 @@ export default function StackEditor({ mode, slug, initialName = "", initialFilms
   const [error, setError] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // "Add by vibe" — pull matching films from the AI Discover engine.
+  const [prompt, setPrompt] = useState("");
+  const [discovered, setDiscovered] = useState<Film[]>([]);
+  const [discovering, setDiscovering] = useState(false);
+  const [discoverError, setDiscoverError] = useState("");
+
   const pickedIds = new Set(picked.map((f) => f.id));
 
   // Debounced film search
@@ -77,6 +83,87 @@ export default function StackEditor({ mode, slug, initialName = "", initialFilms
 
   const addFilm = (film: Film) => setPicked((prev) => (prev.some((f) => f.id === film.id) ? prev : [...prev, film]));
   const removeFilm = (id: number) => setPicked((prev) => prev.filter((f) => f.id !== id));
+
+  const addAll = (list: Film[]) =>
+    setPicked((prev) => {
+      const have = new Set(prev.map((f) => f.id));
+      return [...prev, ...list.filter((f) => !have.has(f.id))];
+    });
+
+  // Stream films matching a free-text prompt from the Discover engine.
+  const runDiscover = useCallback(async () => {
+    const q = prompt.trim();
+    if (!q || discovering) return;
+    setDiscovering(true);
+    setDiscoverError("");
+    setDiscovered([]);
+    // First prompt doubles as the stack name if one isn't set yet.
+    setName((n) => (n.trim() ? n : q));
+    try {
+      const res = await fetch("/api/discover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q }),
+      });
+      if (!res.ok || !res.body) throw new Error("Discovery failed");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const msg = JSON.parse(line);
+            if (msg.type === "film") setDiscovered((prev) => [...prev, msg.data]);
+            else if (msg.type === "error") setDiscoverError(msg.message);
+          } catch {
+            /* ignore malformed lines */
+          }
+        }
+      }
+    } catch (err) {
+      setDiscoverError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setDiscovering(false);
+    }
+  }, [prompt, discovering]);
+
+  // Grid of addable result posters, shared by title search and vibe discovery.
+  const resultGrid = (list: Film[]) => (
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+      {list.map((film) => {
+        const added = pickedIds.has(film.id);
+        return (
+          <button
+            key={film.id}
+            type="button"
+            onClick={() => addFilm(film)}
+            disabled={added}
+            className="text-left group disabled:cursor-default"
+          >
+            <div className="relative">
+              <Poster path={film.poster_path} alt={film.title} />
+              <div className={`absolute inset-0 rounded-md flex items-center justify-center transition-opacity ${added ? "bg-black/60 opacity-100" : "bg-black/40 opacity-0 group-hover:opacity-100"}`}>
+                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${added ? "bg-green-600 text-white" : "bg-amber-500 text-black"}`}>
+                  {added ? "✓ Added" : "+ Add"}
+                </span>
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-zinc-400 line-clamp-1">
+              {film.title}
+              {film.release_date && <span className="text-zinc-600"> · {film.release_date.slice(0, 4)}</span>}
+            </p>
+          </button>
+        );
+      })}
+    </div>
+  );
 
   const save = useCallback(async () => {
     if (saving || !name.trim() || picked.length === 0) return;
@@ -177,9 +264,74 @@ export default function StackEditor({ mode, slug, initialName = "", initialFilms
         )}
       </div>
 
-      {/* Search */}
+      {/* Add by vibe — Discover prompt */}
       <div className="space-y-3 pt-2">
-        <label htmlFor="film-search" className="block text-sm font-medium text-zinc-300">Add films</label>
+        <div>
+          <label htmlFor="discover-prompt" className="block text-sm font-medium text-zinc-300">Add films by vibe</label>
+          <p className="text-xs text-zinc-500 mt-0.5">Describe a mood, theme, or era and we&apos;ll pull matching films you can add in bulk.</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 max-w-2xl">
+          <textarea
+            id="discover-prompt"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                runDiscover();
+              }
+            }}
+            rows={2}
+            placeholder="e.g. slow-burn neo-noir set in the rain…"
+            className="flex-1 bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 resize-none focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition text-sm"
+          />
+          <button
+            type="button"
+            onClick={runDiscover}
+            disabled={discovering || !prompt.trim()}
+            className="shrink-0 bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition self-start"
+          >
+            {discovering ? "Finding…" : "Find films"}
+          </button>
+        </div>
+        {discoverError && <p className="text-amber-400 text-sm">{discoverError}</p>}
+
+        {(discovering || discovered.length > 0) && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-zinc-500">
+                {discovering ? "Finding films…" : `${discovered.length} matches`}
+              </p>
+              {discovered.length > 0 && (
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => addAll(discovered)}
+                    className="text-sm font-medium text-amber-400 hover:text-amber-300 transition"
+                  >
+                    + Add all
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDiscovered([]);
+                      setDiscoverError("");
+                    }}
+                    className="text-sm font-medium text-zinc-400 hover:text-white transition"
+                  >
+                    Clear results
+                  </button>
+                </div>
+              )}
+            </div>
+            {discovered.length > 0 && resultGrid(discovered)}
+          </div>
+        )}
+      </div>
+
+      {/* Or search by title */}
+      <div className="space-y-3 pt-2">
+        <label htmlFor="film-search" className="block text-sm font-medium text-zinc-300">Or search by title</label>
         <input
           id="film-search"
           value={query}
@@ -190,35 +342,7 @@ export default function StackEditor({ mode, slug, initialName = "", initialFilms
 
         {searching && <p className="text-zinc-500 text-sm">Searching…</p>}
 
-        {results.length > 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-            {results.map((film) => {
-              const added = pickedIds.has(film.id);
-              return (
-                <button
-                  key={film.id}
-                  type="button"
-                  onClick={() => addFilm(film)}
-                  disabled={added}
-                  className="text-left group disabled:cursor-default"
-                >
-                  <div className="relative">
-                    <Poster path={film.poster_path} alt={film.title} />
-                    <div className={`absolute inset-0 rounded-md flex items-center justify-center transition-opacity ${added ? "bg-black/60 opacity-100" : "bg-black/40 opacity-0 group-hover:opacity-100"}`}>
-                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${added ? "bg-green-600 text-white" : "bg-amber-500 text-black"}`}>
-                        {added ? "✓ Added" : "+ Add"}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="mt-1 text-xs text-zinc-400 line-clamp-1">
-                    {film.title}
-                    {film.release_date && <span className="text-zinc-600"> · {film.release_date.slice(0, 4)}</span>}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {results.length > 0 && resultGrid(results)}
       </div>
     </div>
   );
