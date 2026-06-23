@@ -23,10 +23,7 @@ const websiteJsonLd = {
 };
 
 export default async function HomePage() {
-  const [trending, popular] = await Promise.all([
-    tmdb.trending() as Promise<TMDBResponse<Film>>,
-    tmdb.popular() as Promise<TMDBResponse<Film>>,
-  ]);
+  const popular = await tmdb.popular() as TMDBResponse<Film>;
 
   const supabase = await createClient();
   const [{ data: { user } }, { data: latestStack }] = await Promise.all([
@@ -94,12 +91,6 @@ export default async function HomePage() {
           <FilmGrid films={latestStack.films.slice(0, 12)} />
         </section>
       )}
-
-      {/* Trending */}
-      <section>
-        <h2 className="text-xl font-semibold text-white mb-4">Trending this week</h2>
-        <FilmGrid films={trending.results.slice(0, 12)} />
-      </section>
 
       {/* Popular */}
       <section>
