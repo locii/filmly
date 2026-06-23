@@ -38,7 +38,7 @@ export default async function StacksIndexPage() {
   const stacks = (data as StackRow[] | null) ?? [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12 space-y-8">
+    <div className="max-w-7xl mx-auto px-8 pb-4 space-y-8">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-wider text-amber-500 font-medium">Film stacks</p>

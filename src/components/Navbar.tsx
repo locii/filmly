@@ -2,29 +2,32 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import SearchBar from "./SearchBar";
 import AuthModal from "./AuthModal";
 import BrandMark from "./BrandMark";
 import type { User } from "@supabase/supabase-js";
 
+const NAV_LINKS = [
+  { href: "/genres", label: "Genres" },
+  { href: "/discover", label: "Discover" },
+  { href: "/stacks", label: "Stacks" },
+];
+
+// Shown in the drawer only when signed in.
+const USER_LINKS = [
+  { href: "/watchlist", label: "Watchlist" },
+  { href: "/recommendations", label: "For You" },
+  { href: "/my-stacks", label: "My stacks" },
+];
+
 export default function Navbar() {
   const supabase = createClient();
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [showAuth, setShowAuth] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const navClass = (href: string) => {
-    const active = pathname === href || !!pathname?.startsWith(`${href}/`);
-    return `hidden sm:block text-sm px-3 py-1.5 transition-colors ${
-      active
-        ? "text-brand font-medium"
-        : "text-zinc-400 hover:text-white"
-    }`;
-  };
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -35,23 +38,39 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
+  // Close the drawer on route change.
+  useEffect(() => setOpen(false), [pathname]);
+
+  // Lock body scroll + close on Escape while the drawer is open.
   useEffect(() => {
-    if (!menuOpen) return;
-    function onClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [menuOpen]);
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [open]);
 
   async function handleSignOut() {
-    setMenuOpen(false);
+    setOpen(false);
     await supabase.auth.signOut();
   }
 
+  function openAuth() {
+    setOpen(false);
+    setShowAuth(true);
+  }
+
   const avatarLetter = (user?.email ?? "?").charAt(0).toUpperCase();
+
+  const linkClass = (href: string) => {
+    const active = pathname === href || !!pathname?.startsWith(`${href}/`);
+    return `block px-3 py-2.5 rounded-lg text-sm transition-colors ${
+      active ? "text-brand bg-zinc-800/60 font-medium" : "text-zinc-300 hover:bg-zinc-800"
+    }`;
+  };
 
   return (
     <>
@@ -66,86 +85,99 @@ export default function Navbar() {
             <SearchBar />
           </div>
 
-          <nav className="flex items-center gap-2 shrink-0">
-            <Link href="/genres" className={navClass("/genres")}>
-              Genres
-            </Link>
-            <Link href="/discover" className={navClass("/discover")}>
-              Discover
-            </Link>
-            <Link href="/stacks" className={navClass("/stacks")}>
-              Stacks
-            </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            {user && (
+              <button
+                onClick={() => setOpen(true)}
+                aria-label="Open menu"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors"
+              >
+                {avatarLetter}
+              </button>
+            )}
+            <button
+              onClick={() => setOpen(true)}
+              aria-label="Open menu"
+              aria-haspopup="menu"
+              aria-expanded={open}
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Off-canvas drawer */}
+      <div
+        className={`fixed inset-0 z-50 transition-opacity duration-200 ${
+          open ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        aria-hidden={!open}
+      >
+        <div className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
+        <aside
+          role="menu"
+          className={`absolute top-0 right-0 h-full w-72 max-w-[82vw] bg-zinc-950 border-l border-zinc-800 shadow-xl flex flex-col transition-transform duration-200 ${
+            open ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          <div className="h-16 px-4 flex items-center justify-between border-b border-zinc-800 shrink-0">
+            <span className="text-sm font-semibold text-zinc-200">Menu</span>
+            <button
+              onClick={() => setOpen(false)}
+              aria-label="Close menu"
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+            {NAV_LINKS.map((l) => (
+              <Link key={l.href} href={l.href} role="menuitem" className={linkClass(l.href)}>
+                {l.label}
+              </Link>
+            ))}
+
+            <div className="my-3 border-t border-zinc-800" />
 
             {user ? (
               <>
-                <Link href="/watchlist" className={navClass("/watchlist")}>
-                  Watchlist
-                </Link>
-                <Link href="/recommendations" className={navClass("/recommendations")}>
-                  For You
-                </Link>
-
-                <div className="relative" ref={menuRef}>
-                  <button
-                    onClick={() => setMenuOpen((o) => !o)}
-                    aria-label="Account menu"
-                    aria-haspopup="menu"
-                    aria-expanded={menuOpen}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors"
-                  >
-                    {avatarLetter}
-                  </button>
-
-                  {menuOpen && (
-                    <div
-                      role="menu"
-                      className="absolute right-0 mt-2 w-56 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl py-1 z-50"
-                    >
-                      {user.email && (
-                        <div className="px-3 py-2 border-b border-zinc-800">
-                          <p className="text-xs text-zinc-500">Signed in as</p>
-                          <p className="text-sm text-zinc-200 truncate">{user.email}</p>
-                        </div>
-                      )}
-                      <Link
-                        href="/watchlist"
-                        role="menuitem"
-                        onClick={() => setMenuOpen(false)}
-                        className="block px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
-                      >
-                        Watchlist
-                      </Link>
-                      <Link
-                        href="/my-stacks"
-                        role="menuitem"
-                        onClick={() => setMenuOpen(false)}
-                        className="block px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
-                      >
-                        My stacks
-                      </Link>
-                      <button
-                        onClick={handleSignOut}
-                        role="menuitem"
-                        className="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors border-t border-zinc-800"
-                      >
-                        Sign out
-                      </button>
-                    </div>
-                  )}
-                </div>
+                {user.email && (
+                  <div className="px-3 pb-2">
+                    <p className="text-xs text-zinc-500">Signed in as</p>
+                    <p className="text-sm text-zinc-200 truncate">{user.email}</p>
+                  </div>
+                )}
+                {USER_LINKS.map((l) => (
+                  <Link key={l.href} href={l.href} role="menuitem" className={linkClass(l.href)}>
+                    {l.label}
+                  </Link>
+                ))}
+                <button
+                  onClick={handleSignOut}
+                  role="menuitem"
+                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+                >
+                  Sign out
+                </button>
               </>
             ) : (
               <button
-                onClick={() => setShowAuth(true)}
-                className="text-sm bg-brand hover:bg-brand-dark text-white px-4 py-1.5 rounded-lg transition-colors font-medium"
+                onClick={openAuth}
+                className="w-full bg-brand hover:bg-brand-dark text-white text-sm font-medium px-3 py-2.5 rounded-lg transition-colors"
               >
                 Sign in
               </button>
             )}
           </nav>
-        </div>
-      </header>
+        </aside>
+      </div>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </>

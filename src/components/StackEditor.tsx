@@ -109,7 +109,7 @@ export default function StackEditor({ mode, slug, initialName = "", initialFilms
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12 space-y-8">
+    <div className="max-w-7xl mx-auto px-8 pb-4 space-y-8">
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-wider text-amber-500 font-medium">{isEdit ? "Edit stack" : "New stack"}</p>
         <h1 className="text-3xl sm:text-4xl font-bold text-white">{isEdit ? "Edit stack" : "Create a stack"}</h1>
