@@ -25,7 +25,7 @@ export default async function MyStacksPage() {
   const stacks = (data as MyStack[] | null) ?? [];
 
   return (
-    <div className="max-w-7xl mx-auto px-8 pb-4 space-y-8">
+    <div className="max-w-7xl mx-auto p-8 space-y-8">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-wider text-amber-500 font-medium">Film stacks</p>

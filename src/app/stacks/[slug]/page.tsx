@@ -77,7 +77,7 @@ export default async function StackPage({ params }: Props) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12 space-y-10">
+    <div className="max-w-7xl mx-auto px-8 space-y-10">
       <JsonLd data={jsonLd} />
       <div className="space-y-4">
         <div className="space-y-2">

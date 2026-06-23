@@ -32,7 +32,7 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <div className="max-w-7xl mx-auto px-8 pb-4 space-y-8">
+    <div className="max-w-7xl mx-auto p-8 space-y-8">
       <JsonLd data={websiteJsonLd} />
       {/* Hero */}
       <div className="text-left py-8">

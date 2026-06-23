@@ -39,7 +39,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
   if (!q || q.trim().length < 2) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12 text-center text-zinc-500">
+      <div className="max-w-7xl mx-auto p-8 text-center text-zinc-500">
         Enter at least 2 characters to search.
       </div>
     );

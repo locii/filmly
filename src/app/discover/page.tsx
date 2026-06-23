@@ -244,7 +244,7 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12 space-y-10">
+    <div className="max-w-7xl mx-auto px-8 py-4 space-y-10">
       <div className="space-y-2">
         <h1 className="text-3xl sm:text-4xl font-bold text-white">Find your next film</h1>
         <p className="text-zinc-400">Describe the kind of film you&apos;re after — a mood, theme, era, or even a half-remembered plot — and we&apos;ll pull together matches from across the catalogue.</p>

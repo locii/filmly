@@ -32,7 +32,7 @@ export default function Footer() {
 
   return (
     <footer className="border-t border-zinc-800 bg-zinc-950/60 mt-16">
-      <div className="max-w-7xl mx-auto px-4 py-12 pb-24 sm:pb-12">
+      <div className="max-w-7xl mx-auto p-8 sm:pb-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1 space-y-3">
