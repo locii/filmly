@@ -50,7 +50,7 @@ export default async function HomePage() {
           <>
             <h1 className="text-4xl font-bold text-white mb-3">Find your next favourite film.</h1>
             <p className="text-zinc-400 text-lg">
-             Break free from streaming service algorithms and discover films that truly speak to you. Create and share thoughtful collections of movies that have shaped, moved, or inspired you.
+             Break free from streaming service algorithms and discover films that truly speak to you.<br /> Create and share thoughtful collections of movies that have shaped, moved, or inspired you.
             </p>
           </>
         )}
