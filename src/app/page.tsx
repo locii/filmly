@@ -29,7 +29,15 @@ export default async function HomePage() {
   ]);
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data: { user } }, { data: latestStack }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("published_stacks")
+      .select("slug, query, films")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ slug: string; query: string; films: Film[] }>(),
+  ]);
 
   return (
     <div className="max-w-7xl mx-auto p-8 space-y-8">
@@ -67,6 +75,25 @@ export default async function HomePage() {
             Get recommendations
           </Link>
         </div>
+
+      {/* Latest stack */}
+      {latestStack && latestStack.films.length > 0 && (
+        <section>
+          <div className="flex items-end justify-between gap-4 mb-4">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-brand font-medium">Latest stack</p>
+              <h2 className="text-xl font-semibold text-white">{latestStack.query}</h2>
+            </div>
+            <Link
+              href={`/stacks/${latestStack.slug}`}
+              className="shrink-0 text-sm text-brand hover:text-white transition-colors"
+            >
+              View stack →
+            </Link>
+          </div>
+          <FilmGrid films={latestStack.films.slice(0, 12)} />
+        </section>
+      )}
 
       {/* Trending */}
       <section>
