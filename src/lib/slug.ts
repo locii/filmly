@@ -14,3 +14,12 @@ export function slugify(input: string): string {
 
   return slug || "stack";
 }
+
+/** Pick `base`, or `base-N` for the smallest N≥2 not already taken. */
+export function nextFreeSlug(base: string, taken: string[]): string {
+  const set = new Set(taken);
+  if (!set.has(base)) return base;
+  let n = 2;
+  while (set.has(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
+}

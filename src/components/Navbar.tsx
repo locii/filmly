@@ -108,6 +108,14 @@ export default function Navbar() {
                           <p className="text-sm text-zinc-200 truncate">{user.email}</p>
                         </div>
                       )}
+                      <Link
+                        href="/my-stacks"
+                        role="menuitem"
+                        onClick={() => setMenuOpen(false)}
+                        className="block px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+                      >
+                        My stacks
+                      </Link>
                       <button
                         onClick={handleSignOut}
                         role="menuitem"

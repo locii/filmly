@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { slugify } from "@/lib/slug";
+import { slugify, nextFreeSlug } from "@/lib/slug";
 import { Film } from "@/lib/types";
 
 /**
@@ -56,13 +56,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ slug });
-}
-
-/** Pick `base`, or `base-N` for the smallest N≥2 not already taken. */
-function nextFreeSlug(base: string, taken: string[]): string {
-  const set = new Set(taken);
-  if (!set.has(base)) return base;
-  let n = 2;
-  while (set.has(`${base}-${n}`)) n++;
-  return `${base}-${n}`;
 }
