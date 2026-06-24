@@ -1,10 +1,9 @@
 import FilmGrid from "@/components/FilmGrid";
 import DiscoverPanel from "@/components/DiscoverPanel";
 import JsonLd from "@/components/JsonLd";
-import { tmdb } from "@/lib/tmdb";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
-import { TMDBResponse, Film } from "@/lib/types";
+import { Film } from "@/lib/types";
 import Link from "next/link";
 
 const websiteJsonLd = {
@@ -23,8 +22,6 @@ const websiteJsonLd = {
 };
 
 export default async function HomePage() {
-  const popular = await tmdb.popular() as TMDBResponse<Film>;
-
   const supabase = await createClient();
   const [{ data: { user } }, { data: latestStack }] = await Promise.all([
     supabase.auth.getUser(),

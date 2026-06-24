@@ -11,7 +11,7 @@ import type { User } from "@supabase/supabase-js";
 
 const NAV_LINKS = [
   { href: "/genres", label: "Genres" },
-  { href: "/discover", label: "Discover" },
+  { href: "/discover", label: "Discover", auth: true },
   { href: "/stacks", label: "Stacks" },
 ];
 
@@ -138,7 +138,7 @@ export default function Navbar() {
           </div>
 
           <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-            {NAV_LINKS.map((l) => (
+            {NAV_LINKS.filter((l) => !l.auth || user).map((l) => (
               <Link key={l.href} href={l.href} role="menuitem" className={linkClass(l.href)}>
                 {l.label}
               </Link>
@@ -170,7 +170,7 @@ export default function Navbar() {
             ) : (
               <button
                 onClick={openAuth}
-                className="w-full bg-brand hover:bg-brand-dark text-white text-sm font-medium px-3 py-2.5 rounded-lg transition-colors"
+                className="w-full bg-brand hover:bg-brand-dark text-white text-sm font-medium px-3 py-2.5 rounded-lg transition-colors mt-4"
               >
                 Sign in
               </button>
