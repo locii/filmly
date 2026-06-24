@@ -86,7 +86,7 @@ export default async function HomePage() {
             </Link>
           </div>
           <FilmGrid films={latestStack.films.slice(0, 12)} />
-          <div className="text-center">
+          <div className="text-center mt-24">
             <Link
               href={`/stacks/${latestStack.slug}`}
               className="bg-brand hover:bg-zinc-700 text-white px-5 py-2.5 rounded-lg transition-colors text-sm font-medium"
