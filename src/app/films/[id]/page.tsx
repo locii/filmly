@@ -171,7 +171,7 @@ export default async function FilmPage({ params }: Props) {
         trailerKey={trailer?.key}
       />
 
-      <div className="max-w-7xl mx-auto px-4 -mt-24 relative pb-16 space-y-12">
+      <div className="max-w-7xl mx-auto p-8  -mt-24 relative space-y-12">
         {/* Header */}
         <div className="flex gap-6 items-end">
           <div className="shrink-0 w-32 sm:w-44 rounded-lg overflow-hidden shadow-2xl bg-zinc-800 aspect-[2/3] relative">

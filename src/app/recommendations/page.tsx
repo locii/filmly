@@ -45,7 +45,7 @@ export default function RecommendationsPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+      <div className="max-w-7xl mx-auto p-8 text-center">
         <p className="text-zinc-400 text-lg mb-4">
           Sign in to get personalised recommendations.
         </p>
@@ -56,7 +56,7 @@ export default function RecommendationsPage() {
   const likedCount = interactions.filter((i) => i.interaction === "watchlist" || i.interaction === "watched" || i.interaction === "like").length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">For you</h1>
         {likedCount === 0 ? (

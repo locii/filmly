@@ -67,7 +67,7 @@ export default async function SearchPage({ searchParams }: Props) {
   } catch { /* show empty */ }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-10">
+    <div className="max-w-7xl mx-auto p-8 space-y-10">
       <h1 className="text-2xl font-semibold text-white">
         Results for <span className="text-zinc-400">&ldquo;{q}&rdquo;</span>
       </h1>

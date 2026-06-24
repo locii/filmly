@@ -92,7 +92,7 @@ export default async function GenrePage({ params }: Props) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto p-8">
       <JsonLd data={collectionJsonLd} />
       <div className="mb-6">
         <a href="/genres" className="text-zinc-500 hover:text-zinc-300 text-sm transition-colors">
