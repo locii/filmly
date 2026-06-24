@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { TMDB_IMAGE_BASE } from "@/lib/tmdb";
 import { useFavourites } from "@/context/FavouritesContext";
+import { useToast } from "@/context/ToastContext";
 import { Film, TMDBResponse } from "@/lib/types";
 
 function Poster({ path, alt }: { path: string | null; alt: string }) {
@@ -34,8 +34,8 @@ interface StackEditorProps {
 }
 
 export default function StackEditor({ mode, slug, initialName = "", initialFilms = [] }: StackEditorProps) {
-  const router = useRouter();
   const { isLoggedIn, isLoading } = useFavourites();
+  const { showToast } = useToast();
   const isEdit = mode === "edit";
 
   const [name, setName] = useState(initialName);
@@ -45,7 +45,13 @@ export default function StackEditor({ mode, slug, initialName = "", initialFilms
   const [picked, setPicked] = useState<Film[]>(initialFilms);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // Once a stack has a slug (from edit, or after first publish) we update it
+  // in place rather than creating duplicates — and never navigate away.
+  const [stackSlug, setStackSlug] = useState<string | null>(slug ?? null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Add-films off-canvas panel.
+  const [addOpen, setAddOpen] = useState(false);
 
   // "Add by vibe" — pull matching films from the AI Discover engine.
   const [prompt, setPrompt] = useState("");
@@ -80,6 +86,18 @@ export default function StackEditor({ mode, slug, initialName = "", initialFilms
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query]);
+
+  // Lock body scroll + close the add panel on Escape.
+  useEffect(() => {
+    if (!addOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setAddOpen(false);
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [addOpen]);
 
   const addFilm = (film: Film) => setPicked((prev) => (prev.some((f) => f.id === film.id) ? prev : [...prev, film]));
   const removeFilm = (id: number) => setPicked((prev) => prev.filter((f) => f.id !== id));
@@ -136,7 +154,7 @@ export default function StackEditor({ mode, slug, initialName = "", initialFilms
 
   // Grid of addable result posters, shared by title search and vibe discovery.
   const resultGrid = (list: Film[]) => (
-    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
       {list.map((film) => {
         const added = pickedIds.has(film.id);
         return (
@@ -170,20 +188,23 @@ export default function StackEditor({ mode, slug, initialName = "", initialFilms
     setSaving(true);
     setError("");
     try {
-      const endpoint = isEdit ? `/api/stacks/${slug}` : "/api/stacks";
+      const endpoint = stackSlug ? `/api/stacks/${stackSlug}` : "/api/stacks";
       const res = await fetch(endpoint, {
-        method: isEdit ? "PATCH" : "POST",
+        method: stackSlug ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: name.trim(), films: picked, totalTitles: picked.length }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Couldn't save");
-      router.push(`/stacks/${data.slug}`);
+      // Stay on the page; just remember the slug and confirm.
+      if (!stackSlug) setStackSlug(data.slug);
+      showToast(stackSlug ? "Changes saved" : "Stack published", stackSlug ? "green" : "brand");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save");
+    } finally {
       setSaving(false);
     }
-  }, [saving, name, picked, router, isEdit, slug]);
+  }, [saving, name, picked, stackSlug, showToast]);
 
   if (!isLoading && !isLoggedIn) {
     return (
@@ -221,7 +242,24 @@ export default function StackEditor({ mode, slug, initialName = "", initialFilms
           <h2 className="text-lg font-semibold text-white">
             In this stack <span className="text-zinc-500 font-normal">· {picked.length}</span>
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setAddOpen(true)}
+              className="text-sm font-medium text-zinc-200 border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800 px-4 py-2 rounded-lg transition-colors"
+            >
+              + Add films
+            </button>
+            {stackSlug && (
+              <a
+                href={`/stacks/${stackSlug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-amber-400 hover:text-amber-300 underline underline-offset-2"
+              >
+                View stack ↗
+              </a>
+            )}
             {isEdit && (
               <Link href="/my-stacks" className="text-sm text-zinc-400 hover:text-white transition">
                 Cancel
@@ -233,15 +271,21 @@ export default function StackEditor({ mode, slug, initialName = "", initialFilms
               disabled={saving || !name.trim() || picked.length === 0}
               className="bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
-              {saving ? (isEdit ? "Saving…" : "Publishing…") : isEdit ? "Save changes" : "Publish stack"}
+              {saving
+                ? stackSlug ? "Saving…" : "Publishing…"
+                : stackSlug ? "Save changes" : "Publish stack"}
             </button>
           </div>
         </div>
         {error && <p className="text-amber-400 text-sm">{error}</p>}
         {picked.length === 0 ? (
-          <p className="text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl py-8 text-center">
-            Search below and add films to build your stack.
-          </p>
+          <button
+            type="button"
+            onClick={() => setAddOpen(true)}
+            className="w-full text-zinc-500 hover:text-zinc-300 text-sm border border-dashed border-zinc-800 hover:border-zinc-700 rounded-xl py-8 text-center transition-colors"
+          >
+            + Add films to build your stack
+          </button>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
             {picked.map((film) => (
@@ -264,85 +308,130 @@ export default function StackEditor({ mode, slug, initialName = "", initialFilms
         )}
       </div>
 
-      {/* Add by vibe — Discover prompt */}
-      <div className="space-y-3 pt-2">
-        <div>
-          <label htmlFor="discover-prompt" className="block text-sm font-medium text-zinc-300">Add films by vibe</label>
-          <p className="text-xs text-zinc-500 mt-0.5">Describe a mood, theme, or era and we&apos;ll pull matching films you can add in bulk.</p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2 max-w-2xl">
-          <textarea
-            id="discover-prompt"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                runDiscover();
-              }
-            }}
-            rows={2}
-            placeholder="e.g. slow-burn neo-noir set in the rain…"
-            className="flex-1 bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 resize-none focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition text-sm"
-          />
-          <button
-            type="button"
-            onClick={runDiscover}
-            disabled={discovering || !prompt.trim()}
-            className="shrink-0 bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition self-start"
-          >
-            {discovering ? "Finding…" : "Find films"}
-          </button>
-        </div>
-        {discoverError && <p className="text-amber-400 text-sm">{discoverError}</p>}
+      {/* Add-films off-canvas */}
+      <div
+        className={`fixed inset-0 z-50 transition-opacity duration-200 ${
+          addOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        aria-hidden={!addOpen}
+      >
+        <div className="absolute inset-0 bg-black/60" onClick={() => setAddOpen(false)} />
+        <aside
+          className={`absolute top-0 right-0 h-full w-full max-w-xl bg-zinc-950 border-l border-zinc-800 shadow-xl flex flex-col transition-transform duration-200 ${
+            addOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          <div className="h-16 px-5 flex items-center justify-between border-b border-zinc-800 shrink-0">
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm font-semibold text-zinc-200">Add films</span>
+              <span className="text-xs text-zinc-500">{picked.length} in stack</span>
+            </div>
+            <button
+              onClick={() => setAddOpen(false)}
+              aria-label="Close"
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
-        {(discovering || discovered.length > 0) && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-zinc-500">
-                {discovering ? "Finding films…" : `${discovered.length} matches`}
-              </p>
-              {discovered.length > 0 && (
-                <div className="flex items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => addAll(discovered)}
-                    className="text-sm font-medium text-amber-400 hover:text-amber-300 transition"
-                  >
-                    + Add all
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDiscovered([]);
-                      setDiscoverError("");
-                    }}
-                    className="text-sm font-medium text-zinc-400 hover:text-white transition"
-                  >
-                    Clear results
-                  </button>
+          <div className="flex-1 overflow-y-auto p-5 space-y-8">
+            {/* Add by vibe — Discover prompt */}
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="discover-prompt" className="block text-sm font-medium text-zinc-300">Add films by vibe</label>
+                <p className="text-xs text-zinc-500 mt-0.5">Describe a mood, theme, or era and we&apos;ll pull matching films you can add in bulk.</p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <textarea
+                  id="discover-prompt"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      runDiscover();
+                    }
+                  }}
+                  rows={2}
+                  placeholder="e.g. slow-burn neo-noir set in the rain…"
+                  className="w-full bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 resize-none focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={runDiscover}
+                  disabled={discovering || !prompt.trim()}
+                  className="self-start bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  {discovering ? "Finding…" : "Find films"}
+                </button>
+              </div>
+              {discoverError && <p className="text-amber-400 text-sm">{discoverError}</p>}
+
+              {(discovering || discovered.length > 0) && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-zinc-500">
+                      {discovering ? "Finding films…" : `${discovered.length} matches`}
+                    </p>
+                    {discovered.length > 0 && (
+                      <div className="flex items-center gap-4">
+                        <button
+                          type="button"
+                          onClick={() => addAll(discovered)}
+                          className="text-sm font-medium text-amber-400 hover:text-amber-300 transition"
+                        >
+                          + Add all
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDiscovered([]);
+                            setDiscoverError("");
+                          }}
+                          className="text-sm font-medium text-zinc-400 hover:text-white transition"
+                        >
+                          Clear results
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {discovered.length > 0 && resultGrid(discovered)}
                 </div>
               )}
             </div>
-            {discovered.length > 0 && resultGrid(discovered)}
+
+            <div className="border-t border-zinc-800" />
+
+            {/* Or search by title */}
+            <div className="space-y-3">
+              <label htmlFor="film-search" className="block text-sm font-medium text-zinc-300">Or search by title</label>
+              <input
+                id="film-search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by title…"
+                className="w-full bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+              />
+
+              {searching && <p className="text-zinc-500 text-sm">Searching…</p>}
+
+              {results.length > 0 && resultGrid(results)}
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Or search by title */}
-      <div className="space-y-3 pt-2">
-        <label htmlFor="film-search" className="block text-sm font-medium text-zinc-300">Or search by title</label>
-        <input
-          id="film-search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by title…"
-          className="w-full max-w-xl bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
-        />
-
-        {searching && <p className="text-zinc-500 text-sm">Searching…</p>}
-
-        {results.length > 0 && resultGrid(results)}
+          <div className="p-4 border-t border-zinc-800 shrink-0">
+            <button
+              type="button"
+              onClick={() => setAddOpen(false)}
+              className="w-full bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+            >
+              Done · {picked.length} in stack
+            </button>
+          </div>
+        </aside>
       </div>
     </div>
   );
