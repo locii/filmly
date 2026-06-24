@@ -72,6 +72,14 @@ export default function Navbar() {
     }`;
   };
 
+  // Inline header links shown to logged-out visitors.
+  const topLinkClass = (href: string) => {
+    const active = pathname === href || !!pathname?.startsWith(`${href}/`);
+    return `text-sm px-3 py-1.5 transition-colors ${
+      active ? "text-brand font-medium" : "text-zinc-400 hover:text-white"
+    }`;
+  };
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-40 bg-zinc-950/90 backdrop-blur border-b border-zinc-800">
@@ -86,26 +94,39 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {user && (
-              <button
-                onClick={() => setOpen(true)}
-                aria-label="Open menu"
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors"
-              >
-                {avatarLetter}
-              </button>
+            {user ? (
+              <>
+                <button
+                  onClick={() => setOpen(true)}
+                  aria-label="Open menu"
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors"
+                >
+                  {avatarLetter}
+                </button>
+                <button
+                  onClick={() => setOpen(true)}
+                  aria-label="Open menu"
+                  aria-haspopup="menu"
+                  aria-expanded={open}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/genres" className={topLinkClass("/genres")}>Genres</Link>
+                <Link href="/stacks" className={topLinkClass("/stacks")}>Stacks</Link>
+                <button
+                  onClick={openAuth}
+                  className="text-sm bg-brand hover:bg-brand-dark text-white px-4 py-1.5 rounded-lg transition-colors font-medium"
+                >
+                  Sign in
+                </button>
+              </>
             )}
-            <button
-              onClick={() => setOpen(true)}
-              aria-label="Open menu"
-              aria-haspopup="menu"
-              aria-expanded={open}
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
           </div>
         </div>
       </header>

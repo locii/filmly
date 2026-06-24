@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { SITE_URL } from "@/lib/seo";
 import BrandMark from "./BrandMark";
 
 interface Props {
@@ -22,15 +23,13 @@ export default function AuthModal({ onClose }: Props) {
     setLoading(true);
     setError(null);
 
-    // Prefer the canonical site URL so links always point at production,
-    // even when signing in from a preview/local deploy. Falls back to the
-    // current origin when the env var isn't set.
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
-
+    // Always send the magic link back to the canonical site origin, so links
+    // point at production even when signing in from a preview/local deploy.
+    // SITE_URL is already normalised (no trailing slash).
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
-        emailRedirectTo: `${siteUrl}/auth/callback`,
+        emailRedirectTo: `${SITE_URL}/auth/callback`,
       },
     });
 

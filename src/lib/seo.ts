@@ -3,7 +3,7 @@ import { Film } from "./types";
 
 /** Canonical site origin, used for absolute URLs in metadata & JSON-LD. No trailing slash. */
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://film-stack.vercel.app"
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://thefilmstack.com"
 ).replace(/\/$/, "");
 
 export const SITE_NAME = "FilmStack";
