@@ -241,7 +241,7 @@ export default async function FilmPage({ params }: Props) {
         {cast.length > 0 && (
           <section>
             <h2 className="text-xl font-semibold text-white mb-4">Cast</h2>
-            <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 lg:grid-cols-10 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-8 lg:grid-cols-10 gap-3">
               {cast.map((member) => (
                 <a
                   key={member.id}
