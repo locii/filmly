@@ -9,6 +9,7 @@ export interface Film {
   vote_count: number;
   genre_ids?: number[];
   genres?: Genre[];
+  reason?: string;        // why this was recommended, e.g. "Because you like Denis Villeneuve"
 }
 
 export interface Genre {

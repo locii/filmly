@@ -198,6 +198,11 @@ export default function FilmCard({ film, onRemove }: { film: Film; onRemove?: ()
         <div className="p-3">
           <h3 className="text-sm font-semibold text-zinc-100 line-clamp-2 leading-snug">{film.title}</h3>
           {year && <p className="text-xs text-zinc-500 mt-0.5">{year}</p>}
+          {film.reason && (
+            <p className="text-[11px] text-brand/90 mt-1 line-clamp-1" title={film.reason}>
+              {film.reason}
+            </p>
+          )}
         </div>
       </Link>
     </div>

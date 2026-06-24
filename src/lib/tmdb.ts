@@ -69,6 +69,10 @@ export const tmdb = {
   filmCredits: (id: number) =>
     tmdbFetch(`/movie/${id}/credits`),
 
+  // One call returning details + cast/crew + keywords, used to build a taste profile.
+  filmProfile: (id: number) =>
+    tmdbFetch(`/movie/${id}`, { append_to_response: "credits,keywords" }),
+
   watchProviders: (id: number) =>
     tmdbFetch(`/movie/${id}/watch/providers`),
 
