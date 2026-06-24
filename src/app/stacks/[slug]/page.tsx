@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
@@ -17,13 +18,14 @@ interface Stack {
   films: Film[];
   total_titles: number;
   created_at: string;
+  created_by: string | null;
 }
 
 async function getStack(slug: string): Promise<Stack | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("published_stacks")
-    .select("slug, query, films, total_titles, created_at")
+    .select("slug, query, films, total_titles, created_at, created_by")
     .eq("slug", slug)
     .maybeSingle();
   return (data as Stack | null) ?? null;
@@ -58,6 +60,10 @@ export default async function StackPage({ params }: Props) {
   const stack = await getStack(slug);
   if (!stack) notFound();
 
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isOwner = !!user && user.id === stack.created_by;
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -85,7 +91,20 @@ export default async function StackPage({ params }: Props) {
           <h1 className="text-3xl sm:text-4xl font-bold text-white">{stack.query}</h1>
           <p className="text-zinc-400">{stack.films.length} films</p>
         </div>
-        <ShareButtons url={absoluteUrl(`/stacks/${slug}`)} title={stack.query} />
+        <div className="flex items-center gap-4 flex-wrap">
+          <ShareButtons url={absoluteUrl(`/stacks/${slug}`)} title={stack.query} />
+          {isOwner && (
+            <Link
+              href={`/my-stacks/${slug}/edit`}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-300 hover:text-white border border-zinc-700 hover:border-zinc-600 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Edit stack
+            </Link>
+          )}
+        </div>
       </div>
 
       <SortableFilmGrid films={stack.films} emptyMessage="This stack is empty." />
