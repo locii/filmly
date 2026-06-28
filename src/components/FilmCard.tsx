@@ -127,9 +127,9 @@ export default function FilmCard({
           </div>
         )}
 
-        {/* Up Next toggle — top-left, outside the Link so it doesn't navigate */}
+        {/* Up Next toggle — top-left, revealed on hover */}
         {queue && (
-          <div className="absolute top-2 left-2 z-20">
+          <div className="absolute top-2 left-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
             <Tip label={queue.inQueue ? "Remove from Up Next" : "Add to Up Next"}>
               <button
                 type="button"

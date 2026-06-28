@@ -256,22 +256,15 @@ export default async function FilmPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Main: synopsis (left) + where-to-watch & cast (right) */}
+        {/* Main: synopsis + cast (left) · where-to-watch (right) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          {/* Left — synopsis */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Left — synopsis, then cast */}
+          <div className="lg:col-span-2 space-y-8">
             {film.overview && (
               <section>
                 <h2 className="text-xl font-semibold text-white mb-3">Synopsis</h2>
                 <p className="text-zinc-300 text-base leading-relaxed">{film.overview}</p>
               </section>
-            )}
-          </div>
-
-          {/* Right — where to watch, then cast */}
-          <aside className="space-y-8">
-            {watchRegion && (
-              <WatchProviders region={watchRegion} regionCode={WATCH_REGION} deepLinks={watchDeepLinks} />
             )}
 
             {creditsData.cast.length > 0 && (
@@ -279,6 +272,13 @@ export default async function FilmPage({ params }: Props) {
                 <h2 className="text-xl font-semibold text-white mb-4">Cast</h2>
                 <CastGrid cast={creditsData.cast} />
               </section>
+            )}
+          </div>
+
+          {/* Right — where to watch */}
+          <aside className="space-y-8">
+            {watchRegion && (
+              <WatchProviders region={watchRegion} regionCode={WATCH_REGION} deepLinks={watchDeepLinks} />
             )}
           </aside>
         </div>

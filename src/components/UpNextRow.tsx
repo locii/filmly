@@ -66,7 +66,7 @@ export default function UpNextRow({ films, ratings }: { films: FilmInteraction[]
             onDragOver={(e) => e.preventDefault()}
             onDragEnd={handleDrop}
             onDrop={handleDrop}
-            className={`shrink-0 w-44 cursor-grab active:cursor-grabbing transition-opacity ${
+            className={`shrink-0 w-48 cursor-grab active:cursor-grabbing transition-opacity ${
               dragging === i ? "opacity-40" : "opacity-100"
             }`}
           >

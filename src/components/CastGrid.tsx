@@ -13,7 +13,7 @@ function slugify(name: string) {
 // members and expands to the full list on demand.
 export default function CastGrid({
   cast,
-  initial = 8,
+  initial = 12,
 }: {
   cast: CastMember[];
   initial?: number;
@@ -24,7 +24,7 @@ export default function CastGrid({
 
   return (
     <div>
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-4">
         {shown.map((member) => (
           <a
             key={member.id}

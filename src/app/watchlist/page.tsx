@@ -71,7 +71,7 @@ function FilmSection({
               <h3 className="text-lg font-semibold text-white mb-3">Other</h3>
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                 {noGenre.map((film) => (
-                  <div key={film.tmdb_id} className="shrink-0 w-44">
+                  <div key={film.tmdb_id} className="shrink-0 w-48">
                     <FilmCard
                       film={interactionToFilm(film, ratings)}
                       queue={enableQueue ? {
