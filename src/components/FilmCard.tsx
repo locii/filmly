@@ -58,7 +58,7 @@ export default function FilmCard({
 
   const toggleWatchlist = () => act(async () => {
     if (onWatchlist) await removeInteraction(film.id, "watchlist");
-    else await addInteraction(film.id, film.title, film.poster_path, "watchlist", genres);
+    else await addInteraction(film.id, film.title, film.poster_path, "watchlist", genres, film.release_date);
   });
 
   const toggleWatched = () => act(async () => {
@@ -66,7 +66,7 @@ export default function FilmCard({
     else {
       // Marking watched clears the to-watch bookmark; re-bookmark later to rewatch.
       if (onWatchlist) await removeInteraction(film.id, "watchlist", { silent: true });
-      await addInteraction(film.id, film.title, film.poster_path, "watched", genres);
+      await addInteraction(film.id, film.title, film.poster_path, "watched", genres, film.release_date);
     }
   });
 
@@ -74,7 +74,7 @@ export default function FilmCard({
     if (isLiked) { await removeInteraction(film.id, "like"); }
     else {
       if (isDisliked) await removeInteraction(film.id, "dislike", { silent: true });
-      await addInteraction(film.id, film.title, film.poster_path, "like", genres);
+      await addInteraction(film.id, film.title, film.poster_path, "like", genres, film.release_date);
     }
   });
 
@@ -82,7 +82,7 @@ export default function FilmCard({
     if (isDisliked) { await removeInteraction(film.id, "dislike"); }
     else {
       if (isLiked) await removeInteraction(film.id, "like", { silent: true });
-      await addInteraction(film.id, film.title, film.poster_path, "dislike", genres);
+      await addInteraction(film.id, film.title, film.poster_path, "dislike", genres, film.release_date);
     }
   });
 
@@ -111,7 +111,7 @@ export default function FilmCard({
 
         {/* Remove from stack — outside the Link so it doesn't navigate */}
         {onRemove && (
-          <div className="absolute top-2 left-2 z-20">
+          <div className="absolute top-1 left-2 z-20">
             <Tip label="Remove from stack">
               <button
                 type="button"
@@ -129,7 +129,7 @@ export default function FilmCard({
 
         {/* Up Next toggle — top-left, revealed on hover */}
         {queue && (
-          <div className="absolute top-2 left-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-1 left-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
             <Tip label={queue.inQueue ? "Remove from Up Next" : "Add to Up Next"}>
               <button
                 type="button"
@@ -151,7 +151,7 @@ export default function FilmCard({
         {isLoggedIn && (
           <>
             {/* Watchlist — top right */}
-            <div className="absolute top-2 right-2">
+            <div className="absolute top-1 right-2">
               <Tip label={
                 onWatchlist
                   ? "Remove from watchlist"

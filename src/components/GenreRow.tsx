@@ -13,7 +13,8 @@ export function interactionToFilm(i: FilmInteraction, ratings?: FilmRatings): Fi
     poster_path: i.poster_path,
     backdrop_path: null,
     overview: "",
-    release_date: r?.release_date ?? "",
+    // Prefer the persisted date; fall back to the ratings backfill for older rows.
+    release_date: i.release_date || r?.release_date || "",
     vote_average: r?.vote_average ?? 0,
     vote_count: 0,
     genre_ids: i.genre_ids,

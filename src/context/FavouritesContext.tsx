@@ -36,7 +36,8 @@ interface FavouritesContextType {
     title: string,
     posterPath: string | null,
     type: "like" | "dislike" | "watchlist" | "watched",
-    genreIds?: number[]
+    genreIds?: number[],
+    releaseDate?: string | null
   ) => Promise<void>;
   removeInteraction: (
     tmdbId: number,
@@ -90,7 +91,8 @@ export function FavouritesProvider({ children }: { children: ReactNode }) {
     title: string,
     posterPath: string | null,
     type: "like" | "dislike" | "watchlist" | "watched",
-    genreIds: number[] = []
+    genreIds: number[] = [],
+    releaseDate: string | null = null
   ) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -104,6 +106,7 @@ export function FavouritesProvider({ children }: { children: ReactNode }) {
           title,
           poster_path: posterPath,
           genre_ids: genreIds,
+          release_date: releaseDate,
           interaction: type,
         },
         { onConflict: "user_id,tmdb_id,interaction" }

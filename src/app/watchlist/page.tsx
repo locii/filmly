@@ -36,6 +36,39 @@ function groupByGenre(films: ReturnType<typeof useFavourites>["interactions"]) {
   return { sortedGenres, noGenre };
 }
 
+// Flat grid of search matches — bypasses the genre/Up-Next grouping so results
+// read as a simple list.
+function SearchResults({
+  films,
+  enableQueue,
+  ratings,
+}: {
+  films: ReturnType<typeof useFavourites>["interactions"];
+  enableQueue?: boolean;
+  ratings?: FilmRatings;
+}) {
+  const { toggleWatchNext } = useFavourites();
+
+  if (films.length === 0) {
+    return <p className="text-zinc-500 text-sm py-8">No films match your search.</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      {films.map((film) => (
+        <FilmCard
+          key={film.tmdb_id}
+          film={interactionToFilm(film, ratings)}
+          queue={enableQueue ? {
+            inQueue: film.queue_position != null,
+            onToggle: () => toggleWatchNext(film.tmdb_id),
+          } : undefined}
+        />
+      ))}
+    </div>
+  );
+}
+
 function FilmSection({
   films,
   empty,
@@ -93,6 +126,7 @@ function FilmSection({
 export default function WatchlistPage() {
   const { interactions, isLoading, isLoggedIn } = useFavourites();
   const [tab, setTab] = useState<Tab>("toWatch");
+  const [query, setQuery] = useState("");
   const [ratings, setRatings] = useState<FilmRatings>({});
 
   // Stored interactions don't carry score/year — fetch them once per id set.
@@ -133,6 +167,9 @@ export default function WatchlistPage() {
     .filter((i) => i.queue_position != null)
     .sort((a, b) => (a.queue_position ?? 0) - (b.queue_position ?? 0));
   const rest = toWatch.filter((i) => i.queue_position == null);
+
+  const q = query.trim().toLowerCase();
+  const matchesQuery = (i: { title: string }) => i.title.toLowerCase().includes(q);
 
   return (
     <div className="max-w-7xl mx-auto p-8">
@@ -186,22 +223,45 @@ export default function WatchlistPage() {
             ))}
           </div>
 
+          {/* Search */}
+          <div className="relative mb-8 max-w-sm">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+            </svg>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search your watchlist…"
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-10 pr-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
+            />
+          </div>
+
           {tab === "toWatch" ? (
-            <>
-              {queued.length > 0 && <UpNextRow films={queued} ratings={ratings} />}
-              {rest.length > 0 ? (
-                <FilmSection
-                  films={rest}
-                  empty=""
-                  enableQueue
-                  ratings={ratings}
-                />
-              ) : queued.length === 0 ? (
-                <p className="text-zinc-500 text-sm">
-                  No films in your watchlist yet — bookmark any film to add it here.
-                </p>
-              ) : null}
-            </>
+            q ? (
+              <SearchResults films={toWatch.filter(matchesQuery)} enableQueue ratings={ratings} />
+            ) : (
+              <>
+                {queued.length > 0 && <UpNextRow films={queued} ratings={ratings} />}
+                {rest.length > 0 ? (
+                  <FilmSection
+                    films={rest}
+                    empty=""
+                    enableQueue
+                    ratings={ratings}
+                  />
+                ) : queued.length === 0 ? (
+                  <p className="text-zinc-500 text-sm">
+                    No films in your watchlist yet — bookmark any film to add it here.
+                  </p>
+                ) : null}
+              </>
+            )
+          ) : q ? (
+            <SearchResults films={watched.filter(matchesQuery)} ratings={ratings} />
           ) : (
             <FilmSection
               films={watched}

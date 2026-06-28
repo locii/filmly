@@ -27,7 +27,8 @@ export default function SaveButton({ film }: Props) {
           film.title,
           film.poster_path,
           "watchlist",
-          film.genre_ids ?? []
+          film.genre_ids ?? [],
+          film.release_date
         );
       }
     } finally {

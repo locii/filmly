@@ -49,7 +49,7 @@ export default function FilmActions({ film }: { film: Film }) {
         <button
           onClick={() => act(async () => {
             if (onWatchlist) await removeInteraction(film.id, "watchlist");
-            else await addInteraction(film.id, film.title, film.poster_path, "watchlist", genres);
+            else await addInteraction(film.id, film.title, film.poster_path, "watchlist", genres, film.release_date);
           })}
           disabled={acting}
           className={`p-2 rounded-full transition-colors disabled:opacity-50
@@ -68,7 +68,7 @@ export default function FilmActions({ film }: { film: Film }) {
             else {
               // Marking watched clears the to-watch bookmark; re-bookmark later to rewatch.
               if (onWatchlist) await removeInteraction(film.id, "watchlist", { silent: true });
-              await addInteraction(film.id, film.title, film.poster_path, "watched", genres);
+              await addInteraction(film.id, film.title, film.poster_path, "watched", genres, film.release_date);
             }
           })}
           disabled={acting}
@@ -87,7 +87,7 @@ export default function FilmActions({ film }: { film: Film }) {
             if (isLiked) { await removeInteraction(film.id, "like"); }
             else {
               if (isDisliked) await removeInteraction(film.id, "dislike", { silent: true });
-              await addInteraction(film.id, film.title, film.poster_path, "like", genres);
+              await addInteraction(film.id, film.title, film.poster_path, "like", genres, film.release_date);
             }
           })}
           disabled={acting}
@@ -106,7 +106,7 @@ export default function FilmActions({ film }: { film: Film }) {
             if (isDisliked) { await removeInteraction(film.id, "dislike"); }
             else {
               if (isLiked) await removeInteraction(film.id, "like", { silent: true });
-              await addInteraction(film.id, film.title, film.poster_path, "dislike", genres);
+              await addInteraction(film.id, film.title, film.poster_path, "dislike", genres, film.release_date);
             }
           })}
           disabled={acting}

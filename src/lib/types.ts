@@ -96,6 +96,8 @@ export interface FilmInteraction {
   title: string;
   poster_path: string | null;
   genre_ids: number[];
+  // TMDB release date ("YYYY-MM-DD"), persisted so cards can show the year.
+  release_date?: string | null;
   interaction: "like" | "dislike" | "watchlist" | "watched";
   created_at: string;
   // "Up Next" queue order for watchlist items; null/absent = not queued.
