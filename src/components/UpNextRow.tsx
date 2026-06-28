@@ -70,17 +70,10 @@ export default function UpNextRow({ films, ratings }: { films: FilmInteraction[]
               dragging === i ? "opacity-40" : "opacity-100"
             }`}
           >
-            <div className="relative">
-              {/* Order badge — bottom-left, clear of the centered rating and the
-                  ⚡ / bookmark toggles up top. */}
-              <div className="absolute bottom-14 left-2 z-30 min-w-6 h-6 px-2 flex items-center justify-center rounded-full bg-brand text-white text-xs font-bold shadow-lg pointer-events-none">
-                {i + 1}
-              </div>
-              <FilmCard
-                film={interactionToFilm(film, ratings)}
-                queue={{ inQueue: true, onToggle: () => toggleWatchNext(film.tmdb_id) }}
-              />
-            </div>
+            <FilmCard
+              film={interactionToFilm(film, ratings)}
+              queue={{ inQueue: true, onToggle: () => toggleWatchNext(film.tmdb_id) }}
+            />
           </div>
         ))}
       </div>
