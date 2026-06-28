@@ -124,12 +124,13 @@ function FilmSection({
 }
 
 export default function WatchlistPage() {
-  const { interactions, isLoading, isLoggedIn } = useFavourites();
+  const { interactions, isLoading, isLoggedIn, backfillReleaseDates } = useFavourites();
   const [tab, setTab] = useState<Tab>("toWatch");
   const [query, setQuery] = useState("");
   const [ratings, setRatings] = useState<FilmRatings>({});
 
-  // Stored interactions don't carry score/year — fetch them once per id set.
+  // Stored interactions don't carry score/year — fetch them once per id set,
+  // then persist the dates so future loads don't depend on this call.
   const idsKey = [...new Set(interactions.map((i) => i.tmdb_id))]
     .sort((a, b) => a - b)
     .join(",");
@@ -138,9 +139,15 @@ export default function WatchlistPage() {
     let cancelled = false;
     fetch(`/api/films/ratings?ids=${idsKey}`)
       .then((r) => r.json())
-      .then((d) => { if (!cancelled) setRatings(d.ratings ?? {}); })
+      .then((d) => {
+        if (cancelled) return;
+        const fetched: FilmRatings = d.ratings ?? {};
+        setRatings(fetched);
+        backfillReleaseDates(fetched);
+      })
       .catch(() => {});
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idsKey]);
 
   if (!isLoggedIn) {

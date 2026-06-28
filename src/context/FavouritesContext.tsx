@@ -10,7 +10,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/context/ToastContext";
-import { FilmInteraction } from "@/lib/types";
+import { FilmInteraction, FilmRatings } from "@/lib/types";
 
 type InteractionType = "like" | "dislike" | "watchlist" | "watched";
 
@@ -49,6 +49,9 @@ interface FavouritesContextType {
   toggleWatchNext: (tmdbId: number) => Promise<void>;
   // Persist a new queue order (ordered list of watchlisted tmdb_ids).
   reorderQueue: (orderedTmdbIds: number[]) => Promise<void>;
+  // Write fetched release dates onto rows that don't have one yet (backfill of
+  // films saved before the date was persisted).
+  backfillReleaseDates: (ratings: FilmRatings) => Promise<void>;
   isLoggedIn: boolean;
 }
 
@@ -151,6 +154,42 @@ export function FavouritesProvider({ children }: { children: ReactNode }) {
   const getInteraction = (tmdbId: number) =>
     interactions.filter((i) => i.tmdb_id === tmdbId);
 
+  // Backfill release_date on rows that lack it, using freshly fetched ratings.
+  // Makes the year durable so later loads don't depend on the ratings call.
+  const backfillReleaseDates = async (ratings: FilmRatings) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const ids = [...new Set(
+      interactions
+        .filter((i) => !i.release_date && ratings[i.tmdb_id]?.release_date)
+        .map((i) => i.tmdb_id)
+    )];
+    if (ids.length === 0) return;
+
+    const results = await Promise.all(
+      ids.map((id) =>
+        supabase
+          .from("film_interactions")
+          .update({ release_date: ratings[id].release_date })
+          .eq("user_id", user.id)
+          .eq("tmdb_id", id)
+      )
+    );
+
+    // If the column isn't there yet (migration not applied), bail without
+    // touching local state so we don't show stale data.
+    if (results.some((r) => r.error)) return;
+
+    setInteractions((prev) =>
+      prev.map((i) =>
+        !i.release_date && ratings[i.tmdb_id]?.release_date
+          ? { ...i, release_date: ratings[i.tmdb_id].release_date }
+          : i
+      )
+    );
+  };
+
   // Add/remove a watchlisted film from the "Up Next" queue. New entries go to
   // the end of the queue; removing simply clears its position.
   const toggleWatchNext = async (tmdbId: number) => {
@@ -245,6 +284,7 @@ export function FavouritesProvider({ children }: { children: ReactNode }) {
         getInteraction,
         toggleWatchNext,
         reorderQueue,
+        backfillReleaseDates,
         isLoggedIn,
       }}
     >
