@@ -71,8 +71,9 @@ export default function UpNextRow({ films, ratings }: { films: FilmInteraction[]
             }`}
           >
             <div className="relative">
-              {/* Order badge — top-center to clear the ⚡ and bookmark toggles */}
-              <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-30 min-w-6 h-6 px-2 flex items-center justify-center rounded-full bg-brand text-white text-xs font-bold shadow-lg pointer-events-none">
+              {/* Order badge — bottom-left, clear of the centered rating and the
+                  ⚡ / bookmark toggles up top. */}
+              <div className="absolute bottom-14 left-2 z-30 min-w-6 h-6 px-2 flex items-center justify-center rounded-full bg-brand text-white text-xs font-bold shadow-lg pointer-events-none">
                 {i + 1}
               </div>
               <FilmCard

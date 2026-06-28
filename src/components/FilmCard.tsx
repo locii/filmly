@@ -155,16 +155,6 @@ export default function FilmCard({
         {/* Action buttons overlay the poster only — outside the Link */}
         {isLoggedIn && (
           <>
-            {/* Rewatch badge — bookmarked again after watching */}
-            {onWatchlist && isWatched && (
-              <div className="absolute top-2 left-2 mt-7 bg-amber-500/90 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded pointer-events-none flex items-center gap-0.5">
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114-3m2 8a8 8 0 01-14 3" />
-                </svg>
-                Rewatch
-              </div>
-            )}
-
             {/* Watchlist — top right */}
             <div className="absolute top-2 right-2">
               <Tip label={

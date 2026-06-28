@@ -5,6 +5,7 @@ import { tmdb, TMDB_IMAGE_BASE } from "@/lib/tmdb";
 import { Film, FilmDetail, Video, CastMember, CrewMember, Person, TMDBResponse, WatchProvidersResponse } from "@/lib/types";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
 import FilmCard from "@/components/FilmCard";
+import CastGrid from "@/components/CastGrid";
 import TrailerPlayer from "@/components/TrailerPlayer";
 import HeroSection from "@/components/HeroSection";
 import FilmActions from "@/components/FilmActions";
@@ -255,52 +256,32 @@ export default async function FilmPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Overview */}
-        {film.overview && (
-          <p className="text-zinc-300 max-w-3xl text-base leading-relaxed">{film.overview}</p>
-        )}
+        {/* Main: synopsis (left) + where-to-watch & cast (right) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* Left — synopsis */}
+          <div className="lg:col-span-2 space-y-6">
+            {film.overview && (
+              <section>
+                <h2 className="text-xl font-semibold text-white mb-3">Synopsis</h2>
+                <p className="text-zinc-300 text-base leading-relaxed">{film.overview}</p>
+              </section>
+            )}
+          </div>
 
-        {/* Where to watch */}
-        {watchRegion && (
-          <WatchProviders region={watchRegion} regionCode={WATCH_REGION} deepLinks={watchDeepLinks} />
-        )}
+          {/* Right — where to watch, then cast */}
+          <aside className="space-y-8">
+            {watchRegion && (
+              <WatchProviders region={watchRegion} regionCode={WATCH_REGION} deepLinks={watchDeepLinks} />
+            )}
 
-        
-
-        {/* Cast */}
-        {cast.length > 0 && (
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-4">Cast</h2>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-8 lg:grid-cols-10 gap-3">
-              {cast.map((member) => (
-                <a
-                  key={member.id}
-                  href={`/people/${member.id}-${slugify(member.name)}`}
-                  className="text-center group/cast"
-                >
-                  <div className="aspect-square rounded-full overflow-hidden bg-zinc-800 mb-1.5 relative ring-2 ring-transparent group-hover/cast:ring-brand transition-all">
-                    {member.profile_path ? (
-                      <Image
-                        src={`${TMDB_IMAGE_BASE}/w185${member.profile_path}`}
-                        alt={member.name}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center text-zinc-600">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs font-medium text-zinc-200 group-hover/cast:text-white leading-tight transition-colors">{member.name}</p>
-                  <p className="text-xs text-zinc-500 leading-tight mt-0.5 line-clamp-2">{member.character}</p>
-                </a>
-              ))}
-            </div>
-          </section>
-        )}
+            {creditsData.cast.length > 0 && (
+              <section>
+                <h2 className="text-xl font-semibold text-white mb-4">Cast</h2>
+                <CastGrid cast={creditsData.cast} />
+              </section>
+            )}
+          </aside>
+        </div>
 
         {/* More from this director */}
         {director && directorFilms.length > 0 && (
