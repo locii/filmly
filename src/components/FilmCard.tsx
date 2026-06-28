@@ -106,7 +106,7 @@ export default function FilmCard({
                 </svg>
               </div>
             )}
-            <div className={`absolute top-2 ${onRemove || queue ? "left-11" : "left-2"} bg-black/70 backdrop-blur-sm text-yellow-400 text-xs font-bold px-2 py-0.5 rounded pointer-events-none`}>
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-sm text-yellow-400 text-xs font-bold px-2 py-0.5 rounded pointer-events-none">
               ★ {rating}
             </div>
           </div>
@@ -114,38 +114,42 @@ export default function FilmCard({
 
         {/* Remove from stack — outside the Link so it doesn't navigate */}
         {onRemove && (
-          <Tip label="Remove from stack">
-            <button
-              type="button"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(); }}
-              aria-label={`Remove ${film.title}`}
-              className="absolute top-2 left-2 z-20 w-7 h-7 flex items-center justify-center rounded-full bg-black/70 text-zinc-200 hover:bg-red-600 hover:text-white backdrop-blur-sm transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </Tip>
+          <div className="absolute top-2 left-2 z-20">
+            <Tip label="Remove from stack">
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(); }}
+                aria-label={`Remove ${film.title}`}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-black/70 text-zinc-200 hover:bg-red-600 hover:text-white backdrop-blur-sm transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </Tip>
+          </div>
         )}
 
         {/* Up Next toggle — top-left, outside the Link so it doesn't navigate */}
         {queue && (
-          <Tip label={queue.inQueue ? "Remove from Up Next" : "Add to Up Next"}>
-            <button
-              type="button"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); queue.onToggle(); }}
-              aria-label={queue.inQueue ? `Remove ${film.title} from Up Next` : `Add ${film.title} to Up Next`}
-              aria-pressed={queue.inQueue}
-              className={`absolute top-2 left-2 z-20 w-7 h-7 flex items-center justify-center rounded-full backdrop-blur-sm transition-colors
-                ${queue.inQueue
-                  ? "bg-brand text-white"
-                  : "bg-black/70 text-zinc-200 hover:bg-black/90 hover:text-white"}`}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </button>
-          </Tip>
+          <div className="absolute top-2 left-2 z-20">
+            <Tip label={queue.inQueue ? "Remove from Up Next" : "Add to Up Next"}>
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); queue.onToggle(); }}
+                aria-label={queue.inQueue ? `Remove ${film.title} from Up Next` : `Add ${film.title} to Up Next`}
+                aria-pressed={queue.inQueue}
+                className={`w-7 h-7 flex items-center justify-center rounded-full backdrop-blur-sm transition-colors
+                  ${queue.inQueue
+                    ? "bg-brand text-white"
+                    : "bg-black/70 text-zinc-200 hover:bg-black/90 hover:text-white"}`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </button>
+            </Tip>
+          </div>
         )}
 
         {/* Action buttons overlay the poster only — outside the Link */}

@@ -265,13 +265,7 @@ export default async function FilmPage({ params }: Props) {
           <WatchProviders region={watchRegion} regionCode={WATCH_REGION} deepLinks={watchDeepLinks} />
         )}
 
-        {/* Trailer */}
-        {trailer && (
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-4">Trailer</h2>
-            <TrailerPlayer videoKey={trailer.key} title={trailer.name} />
-          </section>
-        )}
+        
 
         {/* Cast */}
         {cast.length > 0 && (
