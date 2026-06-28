@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { tmdb, TMDB_IMAGE_BASE } from "@/lib/tmdb";
-import { Film, FilmDetail, Video, CastMember, CrewMember, TMDBResponse, WatchProvidersResponse } from "@/lib/types";
+import { Film, FilmDetail, Video, CastMember, CrewMember, Person, TMDBResponse, WatchProvidersResponse } from "@/lib/types";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
+import FilmCard from "@/components/FilmCard";
 import TrailerPlayer from "@/components/TrailerPlayer";
 import HeroSection from "@/components/HeroSection";
 import FilmActions from "@/components/FilmActions";
@@ -102,11 +103,46 @@ export default async function FilmPage({ params }: Props) {
   const director = creditsData.crew.find((c) => c.job === "Director");
   const cast = creditsData.cast.slice(0, 10);
 
+  // Other films by the same director — powers the "More from this director" row
+  // and lets us flag suggestions as "Related by director". One extra call;
+  // non-fatal if it fails.
+  let directorFilmIds = new Set<number>();
+  let directorFilms: Film[] = [];
+  if (director) {
+    try {
+      const person = (await tmdb.person(director.id)) as Person;
+      const directed = (person.movie_credits?.crew ?? []).filter(
+        (c) => c.job === "Director",
+      );
+      directorFilmIds = new Set(directed.map((c) => c.id));
+      directorFilms = directed
+        .filter((c) => c.id !== filmId && c.poster_path && c.release_date)
+        .sort((a, b) => b.release_date.localeCompare(a.release_date))
+        .filter((c, i, arr) => arr.findIndex((x) => x.id === c.id) === i) // dedupe
+        .slice(0, 12);
+    } catch {
+      /* non-fatal — fall back to genre/theme notes */
+    }
+  }
+
   const watchRegion = providersData.results?.[WATCH_REGION];
   // Only call Watchmode when there's something to deep-link (saves API quota).
   const watchDeepLinks = watchRegion
     ? await getWatchmodeDeepLinks(filmId, WATCH_REGION).catch(() => ({}))
     : {};
+
+  // Build a short note explaining how a suggestion relates to the current film.
+  // Prefer shared genres; otherwise fall back to why TMDB surfaced it.
+  const genreNames = new Map((film.genres ?? []).map((g) => [g.id, g.name]));
+  function relationNote(suggestion: Film, source: "rec" | "similar"): string {
+    if (directorFilmIds.has(suggestion.id)) return "Related by director";
+    const shared = (suggestion.genre_ids ?? [])
+      .map((id) => genreNames.get(id))
+      .filter((name): name is string => Boolean(name));
+    if (shared.length === 1) return `Related by ${shared[0]}`;
+    if (shared.length >= 2) return `Related by ${shared[0]} & ${shared[1]}`;
+    return source === "rec" ? "Related — fans also liked it" : "Related by theme";
+  }
 
   // Merge recommendations + similar, deduplicate, exclude the current film
   // Interleave so we get variety rather than all recs first then all similar
@@ -116,10 +152,10 @@ export default async function FilmPage({ params }: Props) {
   const simList = similarData.results ?? [];
   const maxLen = Math.max(recList.length, simList.length);
   for (let i = 0; i < maxLen; i++) {
-    for (const f of [recList[i], simList[i]]) {
+    for (const [f, source] of [[recList[i], "rec"], [simList[i], "similar"]] as const) {
       if (f && !seen.has(f.id)) {
         seen.add(f.id);
-        suggestions.push(f);
+        suggestions.push({ ...f, reason: relationNote(f, source) });
       }
     }
   }
@@ -267,6 +303,30 @@ export default async function FilmPage({ params }: Props) {
                   <p className="text-xs font-medium text-zinc-200 group-hover/cast:text-white leading-tight transition-colors">{member.name}</p>
                   <p className="text-xs text-zinc-500 leading-tight mt-0.5 line-clamp-2">{member.character}</p>
                 </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* More from this director */}
+        {director && directorFilms.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-white">
+                More from {director.name}
+              </h2>
+              <a
+                href={`/people/${director.id}-${slugify(director.name)}`}
+                className="text-sm text-zinc-400 hover:text-white transition-colors shrink-0"
+              >
+                View all →
+              </a>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {directorFilms.map((f) => (
+                <div key={f.id} className="shrink-0 w-36 sm:w-40">
+                  <FilmCard film={f} />
+                </div>
               ))}
             </div>
           </section>
