@@ -1,18 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { FilmInteraction, Film } from "@/lib/types";
+import { FilmInteraction, Film, FilmRatings } from "@/lib/types";
 import FilmCard from "./FilmCard";
+import { useFavourites } from "@/context/FavouritesContext";
 
-function interactionToFilm(i: FilmInteraction): Film {
+export function interactionToFilm(i: FilmInteraction, ratings?: FilmRatings): Film {
+  const r = ratings?.[i.tmdb_id];
   return {
     id: i.tmdb_id,
     title: i.title,
     poster_path: i.poster_path,
     backdrop_path: null,
     overview: "",
-    release_date: "",
-    vote_average: 0,
+    release_date: r?.release_date ?? "",
+    vote_average: r?.vote_average ?? 0,
     vote_count: 0,
     genre_ids: i.genre_ids,
   };
@@ -22,13 +24,17 @@ interface Props {
   genreId: number;
   genreName: string;
   films: FilmInteraction[];
+  // When true, saved films get an "Up Next" toggle (watchlist only).
+  enableQueue?: boolean;
+  ratings?: FilmRatings;
 }
 
 type Status = "idle" | "loading" | "loaded" | "empty" | "error";
 
-export default function GenreRow({ genreId, genreName, films }: Props) {
+export default function GenreRow({ genreId, genreName, films, enableQueue, ratings }: Props) {
   const [status, setStatus] = useState<Status>("idle");
   const [suggestions, setSuggestions] = useState<Film[]>([]);
+  const { toggleWatchNext } = useFavourites();
 
   const savedIds = films.map((f) => f.tmdb_id);
 
@@ -80,7 +86,13 @@ export default function GenreRow({ genreId, genreName, films }: Props) {
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
         {films.map((film) => (
           <div key={film.tmdb_id} className="shrink-0 w-44">
-            <FilmCard film={interactionToFilm(film)} />
+            <FilmCard
+              film={interactionToFilm(film, ratings)}
+              queue={enableQueue ? {
+                inQueue: film.queue_position != null,
+                onToggle: () => toggleWatchNext(film.tmdb_id),
+              } : undefined}
+            />
           </div>
         ))}
       </div>

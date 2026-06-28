@@ -27,7 +27,16 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export default function FilmCard({ film, onRemove }: { film: Film; onRemove?: () => void }) {
+export default function FilmCard({
+  film,
+  onRemove,
+  queue,
+}: {
+  film: Film;
+  onRemove?: () => void;
+  // When provided, shows an "Up Next" toggle (used on the watchlist).
+  queue?: { inQueue: boolean; onToggle: () => void };
+}) {
   const { addInteraction, removeInteraction, getInteraction, isLoggedIn } = useFavourites();
   const [acting, setActing] = useState(false);
 
@@ -97,7 +106,7 @@ export default function FilmCard({ film, onRemove }: { film: Film; onRemove?: ()
                 </svg>
               </div>
             )}
-            <div className={`absolute top-2 ${onRemove ? "left-11" : "left-2"} bg-black/70 backdrop-blur-sm text-yellow-400 text-xs font-bold px-2 py-0.5 rounded pointer-events-none`}>
+            <div className={`absolute top-2 ${onRemove || queue ? "left-11" : "left-2"} bg-black/70 backdrop-blur-sm text-yellow-400 text-xs font-bold px-2 py-0.5 rounded pointer-events-none`}>
               ★ {rating}
             </div>
           </div>
@@ -114,6 +123,26 @@ export default function FilmCard({ film, onRemove }: { film: Film; onRemove?: ()
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </Tip>
+        )}
+
+        {/* Up Next toggle — top-left, outside the Link so it doesn't navigate */}
+        {queue && (
+          <Tip label={queue.inQueue ? "Remove from Up Next" : "Add to Up Next"}>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); queue.onToggle(); }}
+              aria-label={queue.inQueue ? `Remove ${film.title} from Up Next` : `Add ${film.title} to Up Next`}
+              aria-pressed={queue.inQueue}
+              className={`absolute top-2 left-2 z-20 w-7 h-7 flex items-center justify-center rounded-full backdrop-blur-sm transition-colors
+                ${queue.inQueue
+                  ? "bg-brand text-white"
+                  : "bg-black/70 text-zinc-200 hover:bg-black/90 hover:text-white"}`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </button>
           </Tip>

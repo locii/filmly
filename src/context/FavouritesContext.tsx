@@ -44,6 +44,10 @@ interface FavouritesContextType {
     opts?: { silent?: boolean }
   ) => Promise<void>;
   getInteraction: (tmdbId: number) => FilmInteraction[];
+  // Toggle a watchlisted film in/out of the "Up Next" queue.
+  toggleWatchNext: (tmdbId: number) => Promise<void>;
+  // Persist a new queue order (ordered list of watchlisted tmdb_ids).
+  reorderQueue: (orderedTmdbIds: number[]) => Promise<void>;
   isLoggedIn: boolean;
 }
 
@@ -144,6 +148,90 @@ export function FavouritesProvider({ children }: { children: ReactNode }) {
   const getInteraction = (tmdbId: number) =>
     interactions.filter((i) => i.tmdb_id === tmdbId);
 
+  // Add/remove a watchlisted film from the "Up Next" queue. New entries go to
+  // the end of the queue; removing simply clears its position.
+  const toggleWatchNext = async (tmdbId: number) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const target = interactions.find(
+      (i) => i.tmdb_id === tmdbId && i.interaction === "watchlist"
+    );
+    if (!target) return;
+
+    const queued = target.queue_position != null;
+    let nextPos: number | null;
+    if (queued) {
+      nextPos = null;
+    } else {
+      const max = interactions.reduce(
+        (m, i) => (i.queue_position != null && i.queue_position > m ? i.queue_position : m),
+        -1
+      );
+      nextPos = max + 1;
+    }
+
+    // Optimistic update.
+    setInteractions((prev) =>
+      prev.map((i) =>
+        i.id === target.id ? { ...i, queue_position: nextPos } : i
+      )
+    );
+
+    const { error } = await supabase
+      .from("film_interactions")
+      .update({ queue_position: nextPos })
+      .eq("user_id", user.id)
+      .eq("tmdb_id", tmdbId)
+      .eq("interaction", "watchlist");
+
+    if (error) {
+      // Roll back on failure.
+      setInteractions((prev) =>
+        prev.map((i) =>
+          i.id === target.id ? { ...i, queue_position: target.queue_position ?? null } : i
+        )
+      );
+      showToast("Couldn't update Up Next — please try again", "red");
+    } else {
+      showToast(queued ? "Removed from Up Next" : "Added to Up Next", queued ? "zinc" : "brand");
+    }
+  };
+
+  // Persist a new queue order. positions are reassigned 0..n-1 in array order.
+  const reorderQueue = async (orderedTmdbIds: number[]) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const prev = interactions;
+    const posById = new Map(orderedTmdbIds.map((id, idx) => [id, idx]));
+
+    // Optimistic update.
+    setInteractions((cur) =>
+      cur.map((i) =>
+        i.interaction === "watchlist" && posById.has(i.tmdb_id)
+          ? { ...i, queue_position: posById.get(i.tmdb_id)! }
+          : i
+      )
+    );
+
+    const results = await Promise.all(
+      orderedTmdbIds.map((id, idx) =>
+        supabase
+          .from("film_interactions")
+          .update({ queue_position: idx })
+          .eq("user_id", user.id)
+          .eq("tmdb_id", id)
+          .eq("interaction", "watchlist")
+      )
+    );
+
+    if (results.some((r) => r.error)) {
+      setInteractions(prev);
+      showToast("Couldn't save the new order — please try again", "red");
+    }
+  };
+
   return (
     <FavouritesContext.Provider
       value={{
@@ -152,6 +240,8 @@ export function FavouritesProvider({ children }: { children: ReactNode }) {
         addInteraction,
         removeInteraction,
         getInteraction,
+        toggleWatchNext,
+        reorderQueue,
         isLoggedIn,
       }}
     >

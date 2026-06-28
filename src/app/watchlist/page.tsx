@@ -1,27 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFavourites } from "@/context/FavouritesContext";
-import GenreRow from "@/components/GenreRow";
+import GenreRow, { interactionToFilm } from "@/components/GenreRow";
+import UpNextRow from "@/components/UpNextRow";
 import FilmCard from "@/components/FilmCard";
-import { Film } from "@/lib/types";
+import { FilmRatings } from "@/lib/types";
 import Link from "next/link";
 
 type Tab = "toWatch" | "watched";
-
-function interactionToFilm(i: ReturnType<typeof useFavourites>["interactions"][0]): Film {
-  return {
-    id: i.tmdb_id,
-    title: i.title,
-    poster_path: i.poster_path,
-    backdrop_path: null,
-    overview: "",
-    release_date: "",
-    vote_average: 0,
-    vote_count: 0,
-    genre_ids: i.genre_ids,
-  };
-}
 
 const GENRE_NAMES: Record<number, string> = {
   28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy", 80: "Crime",
@@ -52,10 +39,15 @@ function groupByGenre(films: ReturnType<typeof useFavourites>["interactions"]) {
 function FilmSection({
   films,
   empty,
+  enableQueue,
+  ratings,
 }: {
   films: ReturnType<typeof useFavourites>["interactions"];
   empty: string;
+  enableQueue?: boolean;
+  ratings?: FilmRatings;
 }) {
+  const { toggleWatchNext } = useFavourites();
   const { sortedGenres, noGenre } = groupByGenre(films);
 
   return (
@@ -70,6 +62,8 @@ function FilmSection({
               genreId={genreId}
               genreName={GENRE_NAMES[genreId] ?? "Other"}
               films={genreFilms}
+              enableQueue={enableQueue}
+              ratings={ratings}
             />
           ))}
           {noGenre.length > 0 && (
@@ -78,7 +72,13 @@ function FilmSection({
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                 {noGenre.map((film) => (
                   <div key={film.tmdb_id} className="shrink-0 w-44">
-                    <FilmCard film={interactionToFilm(film)} />
+                    <FilmCard
+                      film={interactionToFilm(film, ratings)}
+                      queue={enableQueue ? {
+                        inQueue: film.queue_position != null,
+                        onToggle: () => toggleWatchNext(film.tmdb_id),
+                      } : undefined}
+                    />
                   </div>
                 ))}
               </div>
@@ -93,6 +93,21 @@ function FilmSection({
 export default function WatchlistPage() {
   const { interactions, isLoading, isLoggedIn } = useFavourites();
   const [tab, setTab] = useState<Tab>("toWatch");
+  const [ratings, setRatings] = useState<FilmRatings>({});
+
+  // Stored interactions don't carry score/year — fetch them once per id set.
+  const idsKey = [...new Set(interactions.map((i) => i.tmdb_id))]
+    .sort((a, b) => a - b)
+    .join(",");
+  useEffect(() => {
+    if (!idsKey) return;
+    let cancelled = false;
+    fetch(`/api/films/ratings?ids=${idsKey}`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setRatings(d.ratings ?? {}); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [idsKey]);
 
   if (!isLoggedIn) {
     return (
@@ -112,6 +127,12 @@ export default function WatchlistPage() {
   const toWatch = interactions.filter((i) => i.interaction === "watchlist");
   const watched = interactions.filter((i) => i.interaction === "watched");
   const total = toWatch.length + watched.length;
+
+  // "Up Next" queue (ordered) shown above the genre-grouped rest.
+  const queued = toWatch
+    .filter((i) => i.queue_position != null)
+    .sort((a, b) => (a.queue_position ?? 0) - (b.queue_position ?? 0));
+  const rest = toWatch.filter((i) => i.queue_position == null);
 
   return (
     <div className="max-w-7xl mx-auto p-8">
@@ -166,14 +187,26 @@ export default function WatchlistPage() {
           </div>
 
           {tab === "toWatch" ? (
-            <FilmSection
-              films={toWatch}
-              empty="No films in your watchlist yet — bookmark any film to add it here."
-            />
+            <>
+              {queued.length > 0 && <UpNextRow films={queued} ratings={ratings} />}
+              {rest.length > 0 ? (
+                <FilmSection
+                  films={rest}
+                  empty=""
+                  enableQueue
+                  ratings={ratings}
+                />
+              ) : queued.length === 0 ? (
+                <p className="text-zinc-500 text-sm">
+                  No films in your watchlist yet — bookmark any film to add it here.
+                </p>
+              ) : null}
+            </>
           ) : (
             <FilmSection
               films={watched}
               empty="No films marked as watched yet."
+              ratings={ratings}
             />
           )}
         </>

@@ -13,7 +13,7 @@ export default function TrailerPlayer({ videoKey, title }: Props) {
 
   if (playing) {
     return (
-      <div className="relative w-full max-w-3xl aspect-video rounded-xl overflow-hidden bg-black">
+      <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black">
         <iframe
           src={`https://www.youtube.com/embed/${videoKey}?autoplay=1&rel=0`}
           title={title}
@@ -28,7 +28,7 @@ export default function TrailerPlayer({ videoKey, title }: Props) {
   return (
     <button
       onClick={() => setPlaying(true)}
-      className="relative w-full max-w-3xl aspect-video rounded-xl overflow-hidden group block"
+      className="relative w-full aspect-video rounded-xl overflow-hidden group block"
       aria-label={`Play trailer: ${title}`}
     >
       {/* Thumbnail */}

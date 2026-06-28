@@ -98,7 +98,13 @@ export interface FilmInteraction {
   genre_ids: number[];
   interaction: "like" | "dislike" | "watchlist" | "watched";
   created_at: string;
+  // "Up Next" queue order for watchlist items; null/absent = not queued.
+  queue_position?: number | null;
 }
+
+// Rating + release date keyed by TMDB id, fetched on demand for stored
+// interactions (which don't persist score/year). See /api/films/ratings.
+export type FilmRatings = Record<number, { vote_average: number; release_date: string }>;
 
 // Lightweight shape returned by /search/person
 export interface PersonResult {
