@@ -54,7 +54,7 @@ function SearchResults({
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4">
       {films.map((film) => (
         <FilmCard
           key={film.tmdb_id}
@@ -104,7 +104,7 @@ function FilmSection({
               <h3 className="text-lg font-semibold text-white mb-3">Other</h3>
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                 {noGenre.map((film) => (
-                  <div key={film.tmdb_id} className="shrink-0 w-48">
+                  <div key={film.tmdb_id} className="shrink-0 w-56">
                     <FilmCard
                       film={interactionToFilm(film, ratings)}
                       queue={enableQueue ? {
