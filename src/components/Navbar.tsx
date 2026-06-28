@@ -89,9 +89,11 @@ export default function Navbar() {
             <span><span className="text-vanilla">Film</span><span className="text-brand">Stack</span></span>
           </Link>
 
-          <div className="flex-1">
+          {/* Inline search — desktop only. On small screens it lives in the drawer. */}
+          <div className="flex-1 hidden md:block">
             <SearchBar />
           </div>
+          <div className="flex-1 md:hidden" />
 
           <div className="flex items-center gap-2 shrink-0">
             {user ? (
@@ -117,13 +119,26 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <Link href="/genres" className={topLinkClass("/genres")}>Genres</Link>
-                <Link href="/stacks" className={topLinkClass("/stacks")}>Stacks</Link>
+                {/* Desktop: inline links + sign in */}
+                <Link href="/genres" className={`hidden md:inline-block ${topLinkClass("/genres")}`}>Genres</Link>
+                <Link href="/stacks" className={`hidden md:inline-block ${topLinkClass("/stacks")}`}>Stacks</Link>
                 <button
                   onClick={openAuth}
-                  className="text-sm bg-brand hover:bg-brand-dark text-white px-4 py-1.5 rounded-lg transition-colors font-medium"
+                  className="hidden md:inline-block text-sm bg-brand hover:bg-brand-dark text-white px-4 py-1.5 rounded-lg transition-colors font-medium"
                 >
                   Sign in
+                </button>
+                {/* Mobile: hamburger */}
+                <button
+                  onClick={() => setOpen(true)}
+                  aria-label="Open menu"
+                  aria-haspopup="menu"
+                  aria-expanded={open}
+                  className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
                 </button>
               </>
             )}
@@ -159,6 +174,11 @@ export default function Navbar() {
           </div>
 
           <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+            {/* Search — drawer only on mobile (inline in header on desktop) */}
+            <div className="md:hidden px-1 pb-2">
+              <SearchBar />
+            </div>
+
             {NAV_LINKS.filter((l) => !l.auth || user).map((l) => (
               <Link key={l.href} href={l.href} role="menuitem" className={linkClass(l.href)}>
                 {l.label}
