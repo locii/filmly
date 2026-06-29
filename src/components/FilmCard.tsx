@@ -5,6 +5,7 @@ import Link from "next/link";
 import { TMDB_IMAGE_BASE } from "@/lib/tmdb";
 import { Film } from "@/lib/types";
 import { useFavourites } from "@/context/FavouritesContext";
+import DiscoverSimilarLink from "./DiscoverSimilarLink";
 import { useState } from "react";
 
 function slugify(title: string | null | undefined) {
@@ -212,17 +213,22 @@ export default function FilmCard({
       </div>
 
       {/* Title sits below the poster, clear of the action buttons */}
-      <Link href={`/films/${film.id}-${slugify(film.title)}`} className="block">
-        <div className="p-3">
-          <h3 className="text-sm font-semibold text-zinc-100 line-clamp-2 leading-snug">{film.title}</h3>
+      <div className="p-3">
+        <div className="flex items-start gap-1">
+          <Link href={`/films/${film.id}-${slugify(film.title)}`} className="block min-w-0 flex-1">
+            <h3 className="text-sm font-semibold text-zinc-100 line-clamp-2 leading-snug">{film.title}</h3>
+          </Link>
+          <DiscoverSimilarLink title={film.title} year={year} className="shrink-0 -mt-0.5 -mr-1 p-1" />
+        </div>
+        <Link href={`/films/${film.id}-${slugify(film.title)}`} className="block">
           {year && <p className="text-xs text-zinc-500 mt-0.5">{year}</p>}
           {film.reason && (
             <p className="text-[11px] text-brand/90 mt-1 line-clamp-1" title={film.reason}>
               {film.reason}
             </p>
           )}
-        </div>
-      </Link>
+        </Link>
+      </div>
     </div>
   );
 }

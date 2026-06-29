@@ -10,6 +10,7 @@ import TrailerPlayer from "@/components/TrailerPlayer";
 import HeroSection from "@/components/HeroSection";
 import FilmActions from "@/components/FilmActions";
 import FollowButton from "@/components/FollowButton";
+import DiscoverSimilarLink from "@/components/DiscoverSimilarLink";
 import WatchProviders from "@/components/WatchProviders";
 import JsonLd from "@/components/JsonLd";
 import { getWatchmodeDeepLinks } from "@/lib/watchmode";
@@ -225,6 +226,7 @@ export default async function FilmPage({ params }: Props) {
               <h1 className="text-2xl sm:text-4xl font-bold text-white leading-tight">
                 {film.title}
               </h1>
+              <DiscoverSimilarLink title={film.title} year={year} size="md" className="mt-2" />
               <FilmActions film={{ ...film, genre_ids: film.genres?.map((g) => g.id) ?? [] }} />
             </div>
             {film.tagline && (
