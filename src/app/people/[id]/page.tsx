@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { tmdb, TMDB_IMAGE_BASE } from "@/lib/tmdb";
 import { Person, Film } from "@/lib/types";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
+import FollowButton from "@/components/FollowButton";
 import JsonLd from "@/components/JsonLd";
 import { absoluteUrl, posterOgImage } from "@/lib/seo";
 
@@ -127,7 +128,16 @@ export default async function PersonPage({ params }: Props) {
         )}
 
         <div className="space-y-2 pt-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">{person.name}</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">{person.name}</h1>
+            <FollowButton
+              variant="pill"
+              personId={person.id}
+              name={person.name}
+              profilePath={person.profile_path}
+              knownForDepartment={person.known_for_department}
+            />
+          </div>
           <p className="text-zinc-400 text-sm">{person.known_for_department}</p>
           <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
             {person.birthday && (

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { tmdb } from "@/lib/tmdb";
 import { Film, Genre, TMDBResponse } from "@/lib/types";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
+import GenreFollowButton from "@/components/GenreFollowButton";
 import JsonLd from "@/components/JsonLd";
 import { absoluteUrl, filmOgImage } from "@/lib/seo";
 import { notFound } from "next/navigation";
@@ -98,9 +99,12 @@ export default async function GenrePage({ params }: Props) {
         <a href="/genres" className="text-zinc-500 hover:text-zinc-300 text-sm transition-colors">
           ← All genres
         </a>
-        <h1 className="text-2xl font-bold text-white mt-2">
-          {genre?.name ?? "Genre"}
-        </h1>
+        <div className="flex items-center gap-3 mt-2 flex-wrap">
+          <h1 className="text-2xl font-bold text-white">
+            {genre?.name ?? "Genre"}
+          </h1>
+          {genre && <GenreFollowButton genreId={genre.id} name={genre.name} />}
+        </div>
         <p className="text-zinc-500 text-sm mt-1">
           {films.total_results.toLocaleString()} films
         </p>

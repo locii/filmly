@@ -104,6 +104,28 @@ export interface FilmInteraction {
   queue_position?: number | null;
 }
 
+// A director (or other person) the user follows. Stored snapshot powers the
+// "Directors I follow" list; latest films are fetched on demand.
+export interface FollowedPerson {
+  id: string;
+  user_id: string;
+  person_id: number;
+  name: string;
+  profile_path: string | null;
+  known_for_department: string | null;
+  created_at: string;
+}
+
+// A genre the user follows. Films are fetched on demand for the
+// "Genres I follow" list.
+export interface FollowedGenre {
+  id: string;
+  user_id: string;
+  genre_id: number;
+  name: string;
+  created_at: string;
+}
+
 // Rating + release date keyed by TMDB id, fetched on demand for stored
 // interactions (which don't persist score/year). See /api/films/ratings.
 export type FilmRatings = Record<number, { vote_average: number; release_date: string }>;

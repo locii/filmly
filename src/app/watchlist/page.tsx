@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useFavourites } from "@/context/FavouritesContext";
+import { useFollows } from "@/context/FollowsContext";
+import { useGenreFollows } from "@/context/GenreFollowsContext";
 import GenreRow, { interactionToFilm } from "@/components/GenreRow";
 import UpNextRow from "@/components/UpNextRow";
 import FilmCard from "@/components/FilmCard";
+import FollowedPeople from "@/components/FollowedPeople";
+import FollowedGenres from "@/components/FollowedGenres";
 import { FilmRatings } from "@/lib/types";
 import Link from "next/link";
 
-type Tab = "toWatch" | "watched";
+type Tab = "toWatch" | "watched" | "people" | "genres";
 
 const GENRE_NAMES: Record<number, string> = {
   28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy", 80: "Crime",
@@ -125,6 +129,8 @@ function FilmSection({
 
 export default function WatchlistPage() {
   const { interactions, isLoading, isLoggedIn, backfillReleaseDates } = useFavourites();
+  const { follows } = useFollows();
+  const { genreFollows } = useGenreFollows();
   const [tab, setTab] = useState<Tab>("toWatch");
   const [query, setQuery] = useState("");
   const [ratings, setRatings] = useState<FilmRatings>({});
@@ -168,6 +174,8 @@ export default function WatchlistPage() {
   const toWatch = interactions.filter((i) => i.interaction === "watchlist");
   const watched = interactions.filter((i) => i.interaction === "watched");
   const total = toWatch.length + watched.length;
+  // Also count people/genre follows — a user may follow without saving any films.
+  const hasAnything = total > 0 || follows.length > 0 || genreFollows.length > 0;
 
   // "Up Next" queue (ordered) shown above the genre-grouped rest.
   const queued = toWatch
@@ -197,7 +205,7 @@ export default function WatchlistPage() {
         </Link>
       </div>
 
-      {total === 0 ? (
+      {!hasAnything ? (
         <div className="py-16 text-center">
           <p className="text-zinc-400 text-lg mb-2">Nothing saved yet.</p>
           <p className="text-zinc-600 text-sm mb-6">Bookmark films to add them to your watchlist.</p>
@@ -208,15 +216,17 @@ export default function WatchlistPage() {
       ) : (
         <>
           {/* Tabs */}
-          <div className="flex items-center gap-2 mb-8 border-b border-zinc-800">
+          <div className="flex items-center gap-2 mb-8 border-b border-zinc-800 overflow-x-auto scrollbar-hide">
             {([
               { key: "toWatch" as Tab, label: "To Watch", count: toWatch.length },
               { key: "watched" as Tab, label: "Watched", count: watched.length },
+              { key: "people" as Tab, label: "Directors / Actors I follow", count: follows.length },
+              { key: "genres" as Tab, label: "Genres I follow", count: genreFollows.length },
             ]).map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`relative px-4 py-2.5 text-sm font-medium transition-colors -mb-px border-b-2 ${
+                className={`relative px-4 py-2.5 text-sm font-medium transition-colors -mb-px border-b-2 whitespace-nowrap ${
                   tab === t.key
                     ? "text-white border-amber-500"
                     : "text-zinc-500 border-transparent hover:text-zinc-300"
@@ -230,24 +240,30 @@ export default function WatchlistPage() {
             ))}
           </div>
 
-          {/* Search */}
-          <div className="relative mb-8 max-w-sm">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none"
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
-            </svg>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search your watchlist…"
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-10 pr-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
-            />
-          </div>
+          {/* Search — only meaningful for the film tabs */}
+          {(tab === "toWatch" || tab === "watched") && (
+            <div className="relative mb-8 max-w-sm">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+              </svg>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search your watchlist…"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-10 pr-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
+              />
+            </div>
+          )}
 
-          {tab === "toWatch" ? (
+          {tab === "people" ? (
+            <FollowedPeople />
+          ) : tab === "genres" ? (
+            <FollowedGenres />
+          ) : tab === "toWatch" ? (
             q ? (
               <SearchResults films={toWatch.filter(matchesQuery)} enableQueue ratings={ratings} />
             ) : (

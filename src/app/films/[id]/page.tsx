@@ -9,6 +9,7 @@ import CastGrid from "@/components/CastGrid";
 import TrailerPlayer from "@/components/TrailerPlayer";
 import HeroSection from "@/components/HeroSection";
 import FilmActions from "@/components/FilmActions";
+import FollowButton from "@/components/FollowButton";
 import WatchProviders from "@/components/WatchProviders";
 import JsonLd from "@/components/JsonLd";
 import { getWatchmodeDeepLinks } from "@/lib/watchmode";
@@ -234,12 +235,20 @@ export default async function FilmPage({ params }: Props) {
               {runtime && <span>{runtime}</span>}
               <span className="text-yellow-400 font-semibold">★ {rating}</span>
               {director && (
-                <a
-                  href={`/people/${director.id}-${slugify(director.name)}`}
-                  className="hover:text-white transition-colors"
-                >
-                  Dir. {director.name}
-                </a>
+                <span className="inline-flex items-center gap-1">
+                  <a
+                    href={`/people/${director.id}-${slugify(director.name)}`}
+                    className="hover:text-white transition-colors"
+                  >
+                    Dir. {director.name}
+                  </a>
+                  <FollowButton
+                    personId={director.id}
+                    name={director.name}
+                    profilePath={director.profile_path}
+                    knownForDepartment="Directing"
+                  />
+                </span>
               )}
             </div>
             <div className="flex flex-wrap gap-2">

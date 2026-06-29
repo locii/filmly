@@ -3,6 +3,8 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { FavouritesProvider } from "@/context/FavouritesContext";
+import { FollowsProvider } from "@/context/FollowsContext";
+import { GenreFollowsProvider } from "@/context/GenreFollowsContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 
@@ -41,9 +43,13 @@ export default function RootLayout({
       <body>
         <ToastProvider>
           <FavouritesProvider>
-            <Navbar />
-            <main className="min-h-screen pt-16">{children}</main>
-            <Footer />
+            <FollowsProvider>
+              <GenreFollowsProvider>
+                <Navbar />
+                <main className="min-h-screen pt-16">{children}</main>
+                <Footer />
+              </GenreFollowsProvider>
+            </FollowsProvider>
           </FavouritesProvider>
         </ToastProvider>
       </body>
