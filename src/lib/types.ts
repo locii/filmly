@@ -22,6 +22,7 @@ export interface Genre {
 export interface Profile {
   id: string;
   email: string | null;
+  username: string | null;
   display_name: string | null;
   bio: string | null;
   location: string | null;

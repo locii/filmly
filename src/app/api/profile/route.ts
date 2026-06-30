@@ -15,6 +15,18 @@ function normaliseUrl(value: string | null): string | null {
   return /^https?:\/\//i.test(value) ? value : `https://${value}`;
 }
 
+// Validate a handle. Empty -> null (clears it). Returns an error message for
+// anything that doesn't match the 3–30 char lowercase/digit/underscore rule.
+function parseUsername(value: unknown): { value: string | null; error?: string } {
+  if (typeof value !== "string") return { value: null };
+  const handle = value.trim().toLowerCase();
+  if (!handle) return { value: null };
+  if (!/^[a-z0-9_]{3,30}$/.test(handle)) {
+    return { value: null, error: "Handle must be 3–30 characters: lowercase letters, numbers or underscores." };
+  }
+  return { value: handle };
+}
+
 /** Update the signed-in user's profile, keeping stack attribution in sync. */
 export async function PATCH(request: NextRequest) {
   const supabase = await createClient();
@@ -24,13 +36,19 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "You must be signed in." }, { status: 401 });
   }
 
-  let body: { display_name?: string; bio?: string; location?: string; website?: string };
+  let body: { username?: string; display_name?: string; bio?: string; location?: string; website?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
+  const handle = parseUsername(body.username);
+  if (handle.error) {
+    return NextResponse.json({ error: handle.error }, { status: 400 });
+  }
+
+  const username = handle.value;
   const display_name = clean(body.display_name, 50);
   const bio = clean(body.bio, 280);
   const location = clean(body.location, 100);
@@ -39,7 +57,7 @@ export async function PATCH(request: NextRequest) {
   // The signup trigger creates a profiles row for every user, so we update it
   // (needs only the existing update-own RLS policy — an upsert would also be
   // checked against an insert policy, which profiles doesn't have).
-  const payload = { display_name, bio, location, website, updated_at: new Date().toISOString() };
+  const payload = { username, display_name, bio, location, website, updated_at: new Date().toISOString() };
   const { data: updated, error } = await supabase
     .from("profiles")
     .update(payload)
@@ -47,6 +65,10 @@ export async function PATCH(request: NextRequest) {
     .select("id");
 
   if (error) {
+    // 23505 = unique violation on the handle.
+    if (error.code === "23505") {
+      return NextResponse.json({ error: "That handle is already taken." }, { status: 409 });
+    }
     return NextResponse.json({ error: "Couldn't save your profile — please try again." }, { status: 500 });
   }
   if (!updated || updated.length === 0) {
@@ -56,13 +78,13 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  // Keep the denormalised author label on this user's stacks current. Falls back
-  // to the email's local part when the display name is cleared.
+  // Keep the denormalised author attribution on this user's stacks current.
+  // Falls back to the email's local part when the display name is cleared.
   const authorLabel = display_name || user.email?.split("@")[0] || null;
   await supabase
     .from("published_stacks")
-    .update({ author_name: authorLabel })
+    .update({ author_name: authorLabel, author_username: username })
     .eq("created_by", user.id);
 
-  return NextResponse.json({ ok: true, display_name });
+  return NextResponse.json({ ok: true, username, display_name });
 }

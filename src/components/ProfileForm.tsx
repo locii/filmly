@@ -27,6 +27,7 @@ const FIELDS: Field[] = [
 export default function ProfileForm({ profile, email, joinedAt }: { profile: Profile | null; email: string | null; joinedAt: string }) {
   const router = useRouter();
   const { showToast } = useToast();
+  const [username, setUsername] = useState(profile?.username ?? "");
   const [values, setValues] = useState({
     display_name: profile?.display_name ?? "",
     bio: profile?.bio ?? "",
@@ -46,7 +47,7 @@ export default function ProfileForm({ profile, email, joinedAt }: { profile: Pro
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, username }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Couldn't save");
@@ -71,6 +72,24 @@ export default function ProfileForm({ profile, email, joinedAt }: { profile: Pro
           <span className="text-zinc-500">Joined</span>
           <span className="text-zinc-300">{dateFmt.format(new Date(joinedAt))}</span>
         </div>
+      </div>
+
+      {/* Handle */}
+      <div className="space-y-1.5">
+        <label htmlFor="username" className="block text-sm font-medium text-zinc-300">Handle</label>
+        <div className="flex items-center bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition">
+          <span className="text-zinc-500 text-sm select-none">@</span>
+          <input
+            id="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 30))}
+            placeholder="yourname"
+            className="flex-1 bg-transparent py-3 pl-1 text-white placeholder-zinc-500 focus:outline-none text-sm"
+          />
+        </div>
+        <p className="text-xs text-zinc-500">
+          Your public page: <span className="text-zinc-400">thefilmstack.com/u/{username || "yourname"}</span> · 3–30 lowercase letters, numbers or underscores.
+        </p>
       </div>
 
       {FIELDS.map((f) => (

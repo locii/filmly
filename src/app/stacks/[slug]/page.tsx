@@ -20,6 +20,7 @@ interface Stack {
   created_at: string;
   created_by: string | null;
   author_name: string | null;
+  author_username: string | null;
 }
 
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -28,7 +29,7 @@ async function getStack(slug: string): Promise<Stack | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("published_stacks")
-    .select("slug, query, films, total_titles, created_at, created_by, author_name")
+    .select("slug, query, films, total_titles, created_at, created_by, author_name, author_username")
     .eq("slug", slug)
     .maybeSingle();
   return (data as Stack | null) ?? null;
@@ -94,7 +95,18 @@ export default async function StackPage({ params }: Props) {
           <h1 className="text-3xl sm:text-4xl font-bold text-white">{stack.query}</h1>
           <p className="text-zinc-400">
             {stack.films.length} films
-            {stack.author_name && <> · by <span className="text-zinc-300">{stack.author_name}</span></>}
+            {stack.author_name && (
+              <>
+                {" · by "}
+                {stack.author_username || stack.created_by ? (
+                  <Link href={`/u/${stack.author_username ?? stack.created_by}`} className="text-zinc-300 hover:text-amber-400 transition-colors">
+                    {stack.author_name}
+                  </Link>
+                ) : (
+                  <span className="text-zinc-300">{stack.author_name}</span>
+                )}
+              </>
+            )}
             {" · "}{dateFmt.format(new Date(stack.created_at))}
           </p>
         </div>
