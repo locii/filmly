@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import SearchBar from "./SearchBar";
 import AuthModal from "./AuthModal";
 import BrandMark from "./BrandMark";
+import ActiveStackBar from "./ActiveStackBar";
 import type { User } from "@supabase/supabase-js";
 
 const NAV_LINKS = [
@@ -98,6 +99,7 @@ export default function Navbar() {
           <div className="flex items-center gap-2 shrink-0">
             {user ? (
               <>
+                <ActiveStackBar />
                 <button
                   onClick={() => setOpen(true)}
                   aria-label="Open menu"

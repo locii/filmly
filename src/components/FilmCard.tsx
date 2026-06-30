@@ -5,6 +5,7 @@ import Link from "next/link";
 import { TMDB_IMAGE_BASE } from "@/lib/tmdb";
 import { Film } from "@/lib/types";
 import { useFavourites } from "@/context/FavouritesContext";
+import { useActiveStack } from "@/context/ActiveStackContext";
 import DiscoverSimilarLink from "./DiscoverSimilarLink";
 import { useState } from "react";
 
@@ -39,7 +40,25 @@ export default function FilmCard({
   queue?: { inQueue: boolean; onToggle: () => void };
 }) {
   const { addInteraction, removeInteraction, getInteraction, isLoggedIn } = useFavourites();
+  const { activeStack, addToActiveStack, removeFromActiveStack, isInActiveStack } = useActiveStack();
   const [acting, setActing] = useState(false);
+  const [stackActing, setStackActing] = useState(false);
+
+  // "Add to active stack" toggle — shown when a stack is active and this card
+  // isn't already inside a stack-management context (watchlist queue / removal).
+  const showStackButton = !!activeStack && !onRemove && !queue;
+  const inStack = showStackButton && isInActiveStack(film.id);
+
+  const toggleStack = async () => {
+    if (stackActing) return;
+    setStackActing(true);
+    try {
+      if (inStack) await removeFromActiveStack(film.id);
+      else await addToActiveStack(film);
+    } finally {
+      setStackActing(false);
+    }
+  };
 
   const interactions = getInteraction(film.id);
   const onWatchlist = interactions.some((i) => i.interaction === "watchlist");
@@ -109,6 +128,31 @@ export default function FilmCard({
             
           </div>
         </Link>
+
+        {/* Add to the active stack — top-left, revealed on hover (filled when in) */}
+        {showStackButton && (
+          <div className="absolute top-1 left-2 z-20">
+            <Tip label={inStack ? `In “${activeStack!.query}”` : `Add to “${activeStack!.query}”`}>
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleStack(); }}
+                disabled={stackActing}
+                aria-pressed={inStack}
+                aria-label={inStack ? `Remove ${film.title} from ${activeStack!.query}` : `Add ${film.title} to ${activeStack!.query}`}
+                className={`w-7 h-7 flex items-center justify-center rounded-full backdrop-blur-sm transition-all disabled:opacity-50
+                  ${inStack
+                    ? "bg-amber-500/90 text-black opacity-100"
+                    : "bg-black/60 text-zinc-200 opacity-0 group-hover:opacity-100 hover:text-white hover:bg-black/80"}`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={inStack ? 2.5 : 2}>
+                  {inStack
+                    ? <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    : <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />}
+                </svg>
+              </button>
+            </Tip>
+          </div>
+        )}
 
         {/* Remove from stack — outside the Link so it doesn't navigate */}
         {onRemove && (

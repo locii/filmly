@@ -32,9 +32,6 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (!query) {
     return NextResponse.json({ error: "Name is required." }, { status: 400 });
   }
-  if (films.length === 0) {
-    return NextResponse.json({ error: "A stack needs at least one film." }, { status: 400 });
-  }
 
   const { data, error } = await supabase
     .from("published_stacks")

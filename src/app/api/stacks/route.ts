@@ -4,9 +4,10 @@ import { slugify, nextFreeSlug } from "@/lib/slug";
 import { Film } from "@/lib/types";
 
 /**
- * Publish a discover result as a public, shareable stack at /stacks/[slug].
- * Signed-in users only (enforced here and by RLS). Always creates a new row;
- * slug collisions get a numeric suffix (base, base-2, base-3, …).
+ * Create a public, shareable stack at /stacks/[slug] — either by publishing a
+ * discover result (with films) or starting an empty stack from the toolbar that
+ * films get added to later. Signed-in users only (enforced here and by RLS).
+ * Always creates a new row; slug collisions get a numeric suffix (base, base-2…).
  */
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -28,9 +29,6 @@ export async function POST(request: NextRequest) {
 
   if (!query) {
     return NextResponse.json({ error: "Query is required." }, { status: 400 });
-  }
-  if (films.length === 0) {
-    return NextResponse.json({ error: "No films to publish." }, { status: 400 });
   }
 
   const base = slugify(query);
