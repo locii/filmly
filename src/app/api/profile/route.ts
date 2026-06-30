@@ -36,24 +36,24 @@ export async function PATCH(request: NextRequest) {
   const location = clean(body.location, 100);
   const website = normaliseUrl(clean(body.website, 200));
 
-  // Upsert so the row exists even if the signup trigger never ran.
-  const { error } = await supabase
+  // The signup trigger creates a profiles row for every user, so we update it
+  // (needs only the existing update-own RLS policy — an upsert would also be
+  // checked against an insert policy, which profiles doesn't have).
+  const payload = { display_name, bio, location, website, updated_at: new Date().toISOString() };
+  const { data: updated, error } = await supabase
     .from("profiles")
-    .upsert(
-      {
-        id: user.id,
-        email: user.email ?? null,
-        display_name,
-        bio,
-        location,
-        website,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id" },
-    );
+    .update(payload)
+    .eq("id", user.id)
+    .select("id");
 
   if (error) {
     return NextResponse.json({ error: "Couldn't save your profile — please try again." }, { status: 500 });
+  }
+  if (!updated || updated.length === 0) {
+    return NextResponse.json(
+      { error: "We couldn't find your profile to update. Try signing out and back in." },
+      { status: 404 },
+    );
   }
 
   // Keep the denormalised author label on this user's stacks current. Falls back
