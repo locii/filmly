@@ -41,12 +41,22 @@ export async function POST(request: NextRequest) {
 
   const slug = nextFreeSlug(base, (existing ?? []).map((r) => r.slug as string));
 
+  // Public-safe author label for attribution. We only have an email (magic-link
+  // sign-in), so prefer a name from user metadata, else the email's local part.
+  const meta = user.user_metadata ?? {};
+  const authorName =
+    (typeof meta.name === "string" && meta.name.trim()) ||
+    (typeof meta.full_name === "string" && meta.full_name.trim()) ||
+    user.email?.split("@")[0] ||
+    null;
+
   const { error } = await supabase.from("published_stacks").insert({
     slug,
     query,
     films,
     total_titles: typeof body.totalTitles === "number" ? body.totalTitles : films.length,
     created_by: user.id,
+    author_name: authorName,
   });
 
   if (error) {

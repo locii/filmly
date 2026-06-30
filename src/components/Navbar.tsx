@@ -29,6 +29,7 @@ export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [showAuth, setShowAuth] = useState(false);
   const [open, setOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -38,6 +39,17 @@ export default function Navbar() {
     });
     return () => subscription.unsubscribe();
   }, [supabase]);
+
+  // Resolve admin status server-side (the allowlist isn't exposed to the client).
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    let cancelled = false;
+    fetch("/api/admin/me")
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setIsAdmin(!!d.admin); })
+      .catch(() => { if (!cancelled) setIsAdmin(false); });
+    return () => { cancelled = true; };
+  }, [user]);
 
   // Close the drawer on route change.
   useEffect(() => setOpen(false), [pathname]);
@@ -202,6 +214,11 @@ export default function Navbar() {
                     {l.label}
                   </Link>
                 ))}
+                {isAdmin && (
+                  <Link href="/admin" role="menuitem" className={linkClass("/admin")}>
+                    Admin
+                  </Link>
+                )}
                 <button
                   onClick={handleSignOut}
                   role="menuitem"

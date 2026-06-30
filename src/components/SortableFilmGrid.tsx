@@ -39,6 +39,9 @@ interface Props {
   // When provided, each card shows a remove button; the film is dropped from the
   // grid and the callback fires (used on Discover to curate a stack before publishing).
   onRemove?: (film: Film) => void;
+  // Show a search box that filters the grid by title (used on stack pages).
+  searchable?: boolean;
+  searchPlaceholder?: string;
 }
 
 const PAGE_SIZE = 20;
@@ -52,6 +55,8 @@ export default function SortableFilmGrid({
   currentPage = 1,
   fetchPage,
   onRemove,
+  searchable = false,
+  searchPlaceholder = "Search this stack…",
 }: Props) {
   const [allFilms, setAllFilms] = useState<Film[]>(initialFilms);
   const seenIds = useRef(new Set(initialFilms.map((f) => f.id)));
@@ -65,13 +70,21 @@ export default function SortableFilmGrid({
     }
   }, [initialFilms]);
   const [sort, setSort] = useState<SortKey>("default");
+  // Title filter for the in-grid search box.
+  const [query, setQuery] = useState("");
   // For in-memory pagination (no fetchPage)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   // For API pagination
   const [page, setPage] = useState(currentPage);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const sorted = useMemo(() => sortFilms(allFilms, sort), [allFilms, sort]);
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return allFilms;
+    return allFilms.filter((f) => f.title.toLowerCase().includes(q));
+  }, [allFilms, query]);
+
+  const sorted = useMemo(() => sortFilms(filtered, sort), [filtered, sort]);
 
   // What's actually shown depends on whether we're doing API or in-memory pagination
   const isApiMode = !!fetchPage;
@@ -112,6 +125,23 @@ export default function SortableFilmGrid({
 
   return (
     <div>
+      {/* Search box */}
+      {searchable && (
+        <div className="relative mb-4 max-w-md">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
+          </svg>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setVisibleCount(PAGE_SIZE); }}
+            placeholder={searchPlaceholder}
+            aria-label={searchPlaceholder}
+            className="w-full bg-zinc-800/60 border border-zinc-700 rounded-lg pl-9 pr-3 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+          />
+        </div>
+      )}
+
       {/* Sort bar */}
       <div className="flex items-center gap-2 mb-5 flex-wrap">
         <span className="text-xs text-zinc-500 mr-1">Sort:</span>
@@ -150,15 +180,21 @@ export default function SortableFilmGrid({
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-        {displayed.map((film) => (
-          <FilmCard
-            key={film.id}
-            film={film}
-            onRemove={onRemove ? () => handleRemove(film) : undefined}
-          />
-        ))}
-      </div>
+      {sorted.length === 0 ? (
+        <div className="text-center text-zinc-500 py-16 text-sm">
+          No films match “{query.trim()}”.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          {displayed.map((film) => (
+            <FilmCard
+              key={film.id}
+              film={film}
+              onRemove={onRemove ? () => handleRemove(film) : undefined}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Load more */}
       {(hasMoreInMemory || hasMoreApi) && (

@@ -1,9 +1,8 @@
-import FilmGrid from "@/components/FilmGrid";
 import DiscoverPanel from "@/components/DiscoverPanel";
 import JsonLd from "@/components/JsonLd";
+import StackCard, { StackCardData } from "@/components/StackCard";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
-import { Film } from "@/lib/types";
 import Link from "next/link";
 
 const websiteJsonLd = {
@@ -23,15 +22,17 @@ const websiteJsonLd = {
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const [{ data: { user } }, { data: latestStack }] = await Promise.all([
+  const [{ data: { user } }, { data: latestStacks }] = await Promise.all([
     supabase.auth.getUser(),
     supabase
       .from("published_stacks")
-      .select("slug, query, films")
+      .select("slug, query, films, created_at, author_name")
+      .gt("total_titles", 0)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle<{ slug: string; query: string; films: Film[] }>(),
+      .limit(6),
   ]);
+
+  const stacks = (latestStacks as StackCardData[] | null) ?? [];
 
   return (
     <div className="max-w-7xl mx-auto p-8 space-y-8">
@@ -70,29 +71,25 @@ export default async function HomePage() {
           </Link>
         </div>
 
-      {/* Latest stack */}
-      {latestStack && latestStack.films.length > 0 && (
+      {/* Latest stacks */}
+      {stacks.length > 0 && (
         <section>
           <div className="flex items-end justify-between gap-4 mb-4">
             <div>
-              <p className="text-xs uppercase tracking-wider text-brand font-medium">Latest stack</p>
-              <h2 className="text-xl font-semibold text-white">{latestStack.query}</h2>
+              <p className="text-xs uppercase tracking-wider text-brand font-medium">Latest stacks</p>
+              <h2 className="text-xl font-semibold text-white">Fresh from the community</h2>
             </div>
             <Link
-              href={`/stacks/${latestStack.slug}`}
+              href="/stacks"
               className="shrink-0 text-sm text-brand hover:text-white transition-colors"
             >
-              View stack →
+              Browse all →
             </Link>
           </div>
-          <FilmGrid films={latestStack.films.slice(0, 12)} />
-          <div className="text-center mt-24">
-            <Link
-              href={`/stacks/${latestStack.slug}`}
-              className="bg-brand hover:bg-zinc-700 text-white px-5 py-2.5 rounded-lg transition-colors text-sm font-medium"
-            >
-              View the full stack
-            </Link>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {stacks.map((stack) => (
+              <StackCard key={stack.slug} stack={stack} />
+            ))}
           </div>
         </section>
       )}
