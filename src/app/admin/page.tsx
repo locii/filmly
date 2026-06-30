@@ -29,16 +29,21 @@ export default async function AdminPage() {
   const supabase = createAdminClient();
 
   // Pull users (auth), every stack, and interaction owners in parallel.
-  const [usersRes, stacksRes, interactionsRes] = await Promise.all([
+  const [usersRes, stacksRes, interactionsRes, profilesRes] = await Promise.all([
     supabase.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     supabase
       .from("published_stacks")
       .select("slug, query, total_titles, created_by, author_name, created_at")
       .order("created_at", { ascending: false }),
     supabase.from("film_interactions").select("user_id"),
+    supabase.from("profiles").select("id, display_name"),
   ]);
 
   const authUsers = usersRes.data?.users ?? [];
+  const displayNameById = new Map(
+    ((profilesRes.data ?? []) as { id: string; display_name: string | null }[])
+      .map((p) => [p.id, p.display_name]),
+  );
   const stacks = (stacksRes.data ?? []) as {
     slug: string; query: string; total_titles: number;
     created_by: string | null; author_name: string | null; created_at: string;
@@ -61,6 +66,7 @@ export default async function AdminPage() {
     return {
       id: u.id,
       email: u.email ?? null,
+      name: displayNameById.get(u.id) ?? null,
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at ?? null,
       banned: !!bannedUntil && new Date(bannedUntil).getTime() > now,

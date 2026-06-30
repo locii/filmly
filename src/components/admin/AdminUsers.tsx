@@ -6,6 +6,7 @@ import { useToast } from "@/context/ToastContext";
 export interface AdminUserRow {
   id: string;
   email: string | null;
+  name: string | null;
   created_at: string;
   last_sign_in_at: string | null;
   banned: boolean;
@@ -83,13 +84,18 @@ export default function AdminUsers({ users }: { users: AdminUserRow[] }) {
             <tr key={u.id} className="border-b border-zinc-800/60 last:border-0 hover:bg-zinc-900/40">
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-zinc-200 truncate">{u.email ?? "—"}</span>
-                  {u.isSelf && (
-                    <span className="shrink-0 text-[10px] uppercase tracking-wide text-brand bg-brand/10 rounded px-1.5 py-0.5">You</span>
-                  )}
-                  {u.banned && (
-                    <span className="shrink-0 text-[10px] uppercase tracking-wide text-red-400 bg-red-500/10 rounded px-1.5 py-0.5">Banned</span>
-                  )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-zinc-200 truncate">{u.name || u.email || "—"}</span>
+                      {u.isSelf && (
+                        <span className="shrink-0 text-[10px] uppercase tracking-wide text-brand bg-brand/10 rounded px-1.5 py-0.5">You</span>
+                      )}
+                      {u.banned && (
+                        <span className="shrink-0 text-[10px] uppercase tracking-wide text-red-400 bg-red-500/10 rounded px-1.5 py-0.5">Banned</span>
+                      )}
+                    </div>
+                    {u.name && <p className="text-xs text-zinc-500 truncate">{u.email}</p>}
+                  </div>
                 </div>
               </td>
               <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">{fmt(u.created_at)}</td>

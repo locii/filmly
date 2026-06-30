@@ -21,6 +21,7 @@ const USER_LINKS = [
   { href: "/watchlist", label: "Watchlist" },
   { href: "/recommendations", label: "For You" },
   { href: "/my-stacks", label: "My stacks" },
+  { href: "/profile", label: "Profile" },
 ];
 
 export default function Navbar() {

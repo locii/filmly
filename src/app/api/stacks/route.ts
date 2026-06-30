@@ -41,12 +41,15 @@ export async function POST(request: NextRequest) {
 
   const slug = nextFreeSlug(base, (existing ?? []).map((r) => r.slug as string));
 
-  // Public-safe author label for attribution. We only have an email (magic-link
-  // sign-in), so prefer a name from user metadata, else the email's local part.
-  const meta = user.user_metadata ?? {};
+  // Public-safe author label for attribution: the user's chosen display name,
+  // falling back to the email's local part if they haven't set one.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .maybeSingle();
   const authorName =
-    (typeof meta.name === "string" && meta.name.trim()) ||
-    (typeof meta.full_name === "string" && meta.full_name.trim()) ||
+    (profile?.display_name as string | null)?.trim() ||
     user.email?.split("@")[0] ||
     null;
 

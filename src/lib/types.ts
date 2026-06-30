@@ -17,6 +17,19 @@ export interface Genre {
   name: string;
 }
 
+// User-editable profile. email is the private identity; the rest are details
+// the user fills in themselves. display_name powers public stack attribution.
+export interface Profile {
+  id: string;
+  email: string | null;
+  display_name: string | null;
+  bio: string | null;
+  location: string | null;
+  website: string | null;
+  created_at: string;
+  updated_at?: string | null;
+}
+
 export interface Video {
   id: string;
   key: string;           // YouTube video ID
