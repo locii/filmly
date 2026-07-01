@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useFavourites } from "@/context/FavouritesContext";
+import { useAuthPrompt } from "@/context/AuthPromptContext";
 import { Film } from "@/lib/types";
 
 interface Props {
@@ -10,12 +11,15 @@ interface Props {
 
 export default function SaveButton({ film }: Props) {
   const { addInteraction, removeInteraction, getInteraction, isLoggedIn } = useFavourites();
+  const { promptSignup } = useAuthPrompt();
   const [isActing, setIsActing] = useState(false);
   const isSaved = getInteraction(film.id).some((i) => i.interaction === "watchlist");
 
-  if (!isLoggedIn) return null;
-
   async function toggleSave() {
+    if (!isLoggedIn) {
+      promptSignup("Sign up free to save films to your watchlist.");
+      return;
+    }
     if (isActing) return;
     setIsActing(true);
     try {

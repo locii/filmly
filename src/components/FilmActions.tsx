@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useFavourites } from "@/context/FavouritesContext";
 import { useActiveStack } from "@/context/ActiveStackContext";
+import { useAuthPrompt } from "@/context/AuthPromptContext";
 import { Film } from "@/lib/types";
 
 function Tip({ label, children }: { label: string; children: React.ReactNode }) {
@@ -21,6 +22,7 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
 export default function FilmActions({ film }: { film: Film }) {
   const { addInteraction, removeInteraction, getInteraction, isLoggedIn } = useFavourites();
   const { activeStack, addToActiveStack, removeFromActiveStack, isInActiveStack } = useActiveStack();
+  const { promptSignup } = useAuthPrompt();
   const [acting, setActing] = useState(false);
 
   const interactions = getInteraction(film.id);
@@ -30,11 +32,12 @@ export default function FilmActions({ film }: { film: Film }) {
   const isDisliked = interactions.some((i) => i.interaction === "dislike");
   const inStack    = !!activeStack && isInActiveStack(film.id);
 
-  if (!isLoggedIn) return null;
-
   const genres = film.genre_ids ?? [];
 
-  async function act(fn: () => Promise<void>) {
+  // Logged-out visitors still see the buttons — clicking one prompts sign-up
+  // rather than silently doing nothing.
+  async function act(fn: () => Promise<void>, reason = "Sign up free to save and rate films.") {
+    if (!isLoggedIn) { promptSignup(reason); return; }
     if (acting) return;
     setActing(true);
     try { await fn(); } finally { setActing(false); }
@@ -74,7 +77,7 @@ export default function FilmActions({ film }: { film: Film }) {
           onClick={() => act(async () => {
             if (onWatchlist) await removeInteraction(film.id, "watchlist");
             else await addInteraction(film.id, film.title, film.poster_path, "watchlist", genres, film.release_date);
-          })}
+          }, "Sign up free to save films to your watchlist.")}
           disabled={acting}
           className={`p-2 rounded-full transition-colors disabled:opacity-50
             ${onWatchlist ? "text-amber-400 hover:text-amber-500" : "text-zinc-500 hover:text-zinc-300"}`}

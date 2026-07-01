@@ -14,7 +14,7 @@ const EXPLORE_LINKS = [
   { href: "/discover", label: "Discover" },
   { href: "/stacks", label: "Stacks" },
   { href: "/genres", label: "Genres" },
-  { href: "/recommendations", label: "For You" },
+  { href: "/recommendations", label: "Recommendations" },
 ];
 
 export default function Footer() {

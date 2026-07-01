@@ -7,6 +7,7 @@ import { FavouritesProvider } from "@/context/FavouritesContext";
 import { FollowsProvider } from "@/context/FollowsContext";
 import { GenreFollowsProvider } from "@/context/GenreFollowsContext";
 import { ActiveStackProvider } from "@/context/ActiveStackContext";
+import { AuthPromptProvider } from "@/context/AuthPromptContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 
@@ -63,9 +64,11 @@ gtag('config', '${GA_ID}');`}
             <FollowsProvider>
               <GenreFollowsProvider>
                 <ActiveStackProvider>
-                  <Navbar />
-                  <main className="min-h-screen pt-16">{children}</main>
-                  <Footer />
+                  <AuthPromptProvider>
+                    <Navbar />
+                    <main className="min-h-screen pt-16">{children}</main>
+                    <Footer />
+                  </AuthPromptProvider>
                 </ActiveStackProvider>
               </GenreFollowsProvider>
             </FollowsProvider>

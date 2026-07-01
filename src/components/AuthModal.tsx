@@ -7,9 +7,11 @@ import BrandMark from "./BrandMark";
 
 interface Props {
   onClose: () => void;
+  /** Optional contextual line explaining why we're prompting (e.g. after a save attempt). */
+  reason?: string;
 }
 
-export default function AuthModal({ onClose }: Props) {
+export default function AuthModal({ onClose, reason }: Props) {
   const supabase = createClient();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -78,10 +80,24 @@ export default function AuthModal({ onClose }: Props) {
             <>
               <div className="text-center mb-6">
                 <div className="flex justify-center mb-3"><BrandMark className="w-10 h-10" /></div>
-                <h2 className="text-xl font-bold text-white">Sign in to FilmStack</h2>
+                <h2 className="text-xl font-bold text-white">Join FilmStack — free</h2>
                 <p className="text-zinc-400 text-sm mt-1">
-                  We&apos;ll email you a magic link — no password needed.
+                  {reason ?? "Save films, build stacks, and get personal recommendations."}
                 </p>
+                <ul className="text-zinc-400 text-sm mt-4 space-y-1.5 text-left inline-block">
+                  <li className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-brand shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Free forever — no card required
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-brand shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    No password — just a magic link
+                  </li>
+                </ul>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useAuthPrompt } from "@/context/AuthPromptContext";
 import SearchBar from "./SearchBar";
-import AuthModal from "./AuthModal";
 import BrandMark from "./BrandMark";
 import ActiveStackBar from "./ActiveStackBar";
 import type { User } from "@supabase/supabase-js";
@@ -19,7 +19,7 @@ const NAV_LINKS = [
 // Shown in the drawer only when signed in.
 const USER_LINKS = [
   { href: "/watchlist", label: "Watchlist" },
-  { href: "/recommendations", label: "For You" },
+  { href: "/recommendations", label: "Recommendations" },
   { href: "/my-stacks", label: "My stacks" },
   { href: "/profile", label: "Profile" },
 ];
@@ -27,8 +27,8 @@ const USER_LINKS = [
 export default function Navbar() {
   const supabase = createClient();
   const pathname = usePathname();
+  const { promptSignup } = useAuthPrompt();
   const [user, setUser] = useState<User | null>(null);
-  const [showAuth, setShowAuth] = useState(false);
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -36,7 +36,6 @@ export default function Navbar() {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) setShowAuth(false);
     });
     return () => subscription.unsubscribe();
   }, [supabase]);
@@ -74,7 +73,7 @@ export default function Navbar() {
 
   function openAuth() {
     setOpen(false);
-    setShowAuth(true);
+    promptSignup();
   }
 
   const avatarLetter = (user?.email ?? "?").charAt(0).toUpperCase();
@@ -141,7 +140,7 @@ export default function Navbar() {
                   onClick={openAuth}
                   className="hidden md:inline-block text-sm bg-brand hover:bg-brand-dark text-white px-4 py-1.5 rounded-lg transition-colors font-medium"
                 >
-                  Sign in
+                  Sign up
                 </button>
                 {/* Mobile: hamburger */}
                 <button
@@ -233,14 +232,12 @@ export default function Navbar() {
                 onClick={openAuth}
                 className="w-full bg-brand hover:bg-brand-dark text-white text-sm font-medium px-3 py-2.5 rounded-lg transition-colors mt-4"
               >
-                Sign in
+                Sign up — it's free
               </button>
             )}
           </nav>
         </aside>
       </div>
-
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </>
   );
 }
