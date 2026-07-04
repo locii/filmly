@@ -73,6 +73,44 @@ function SearchResults({
   );
 }
 
+// Horizontal highlight row of the most recently bookmarked films. Sits above
+// the genre grouping (which still shows the whole list) for quick access to
+// what was just added.
+function RecentlyAddedRow({
+  films,
+  ratings,
+}: {
+  films: ReturnType<typeof useFavourites>["interactions"];
+  ratings?: FilmRatings;
+}) {
+  const { toggleWatchNext } = useFavourites();
+
+  return (
+    <section className="mb-12">
+      <div className="flex items-center gap-2 mb-3">
+        <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h2 className="text-lg font-semibold text-white">Recently Added</h2>
+      </div>
+
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+        {films.map((film) => (
+          <div key={film.tmdb_id} className="shrink-0 w-56">
+            <FilmCard
+              film={interactionToFilm(film, ratings)}
+              queue={{
+                inQueue: film.queue_position != null,
+                onToggle: () => toggleWatchNext(film.tmdb_id),
+              }}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function FilmSection({
   films,
   empty,
@@ -182,6 +220,9 @@ export default function WatchlistPage() {
     .filter((i) => i.queue_position != null)
     .sort((a, b) => (a.queue_position ?? 0) - (b.queue_position ?? 0));
   const rest = toWatch.filter((i) => i.queue_position == null);
+  // Newest 24 bookmarks (interactions arrive ordered by created_at desc), shown
+  // as a highlight row above the full genre grouping.
+  const recentlyAdded = rest.slice(0, 24);
 
   const q = query.trim().toLowerCase();
   const matchesQuery = (i: { title: string }) => i.title.toLowerCase().includes(q);
@@ -269,18 +310,21 @@ export default function WatchlistPage() {
             ) : (
               <>
                 {queued.length > 0 && <UpNextRow films={queued} ratings={ratings} />}
-                {rest.length > 0 ? (
+                {recentlyAdded.length > 0 && (
+                  <RecentlyAddedRow films={recentlyAdded} ratings={ratings} />
+                )}
+                {toWatch.length > 0 ? (
                   <FilmSection
-                    films={rest}
+                    films={toWatch}
                     empty=""
                     enableQueue
                     ratings={ratings}
                   />
-                ) : queued.length === 0 ? (
+                ) : (
                   <p className="text-zinc-500 text-sm">
                     No films in your watchlist yet — bookmark any film to add it here.
                   </p>
-                ) : null}
+                )}
               </>
             )
           ) : q ? (
