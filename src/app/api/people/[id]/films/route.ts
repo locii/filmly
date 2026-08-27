@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tmdb } from "@/lib/tmdb";
 import { Person, Film } from "@/lib/types";
+import { PUBLIC_CACHE } from "@/lib/cache";
 
 // Latest films for a followed person — powers the "Directors / Actors I follow"
 // rows on the watchlist. Directors get their directing credits; everyone else
@@ -36,10 +37,13 @@ export async function GET(
       })
       .slice(0, 20);
 
-    return NextResponse.json({
-      films,
-      department: isDirector ? "Directing" : "Acting",
-    });
+    return NextResponse.json(
+      {
+        films,
+        department: isDirector ? "Directing" : "Acting",
+      },
+      { headers: { "Cache-Control": PUBLIC_CACHE } },
+    );
   } catch {
     return NextResponse.json({ films: [], department: null }, { status: 502 });
   }

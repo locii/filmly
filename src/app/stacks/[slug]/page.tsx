@@ -1,12 +1,35 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cache } from "react";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createReadClient } from "@/lib/supabase/read";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
 import JsonLd from "@/components/JsonLd";
 import ShareButtons from "@/components/ShareButtons";
+import StackOwnerActions from "@/components/StackOwnerActions";
 import { absoluteUrl, filmOgImage } from "@/lib/seo";
 import { Film } from "@/lib/types";
+
+// Published stacks are public, read-only content that changes rarely — serve them
+// as ISR instead of rendering (with an auth round-trip) on every crawler request.
+export const revalidate = 3600;
+
+// Prerender existing stacks at build (these are exactly what the sitemap points
+// crawlers at); newly-created ones fall through to on-demand ISR via `revalidate`.
+export async function generateStaticParams() {
+  try {
+    const supabase = createReadClient();
+    const { data } = await supabase
+      .from("published_stacks")
+      .select("slug")
+      .gt("total_titles", 0)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    return (data ?? []).map((s: { slug: string }) => ({ slug: s.slug }));
+  } catch {
+    return [];
+  }
+}
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -25,15 +48,16 @@ interface Stack {
 
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-async function getStack(slug: string): Promise<Stack | null> {
-  const supabase = await createClient();
+// Memoised so generateMetadata + the page body share a single query per request.
+const getStack = cache(async (slug: string): Promise<Stack | null> => {
+  const supabase = createReadClient();
   const { data } = await supabase
     .from("published_stacks")
     .select("slug, query, films, total_titles, created_at, created_by, author_name, author_username")
     .eq("slug", slug)
     .maybeSingle();
   return (data as Stack | null) ?? null;
-}
+});
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -63,10 +87,6 @@ export default async function StackPage({ params }: Props) {
   const { slug } = await params;
   const stack = await getStack(slug);
   if (!stack) notFound();
-
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const isOwner = !!user && user.id === stack.created_by;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -112,17 +132,7 @@ export default async function StackPage({ params }: Props) {
         </div>
         <div className="flex items-center gap-4 flex-wrap">
           <ShareButtons url={absoluteUrl(`/stacks/${slug}`)} title={stack.query} />
-          {isOwner && (
-            <Link
-              href={`/my-stacks/${slug}/edit`}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-300 hover:text-white border border-zinc-700 hover:border-zinc-600 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit stack
-            </Link>
-          )}
+          <StackOwnerActions slug={slug} createdBy={stack.created_by} />
         </div>
       </div>
 

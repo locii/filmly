@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SortableFilmGrid from "@/components/SortableFilmGrid";
 import { useFavourites } from "@/context/FavouritesContext";
+import { useAuthPrompt } from "@/context/AuthPromptContext";
 import { Film } from "@/lib/types";
 
 const EXAMPLES = [
@@ -87,7 +88,8 @@ const DiscoverLoader = memo(function DiscoverLoader() {
 export default function DiscoverPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isLoggedIn } = useFavourites();
+  const { isLoggedIn, isLoading: authLoading } = useFavourites();
+  const { promptSignup } = useAuthPrompt();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [films, setFilms] = useState<Film[]>([]);
   const [totalTitles, setTotalTitles] = useState(0);
@@ -148,6 +150,13 @@ export default function DiscoverPage() {
 
   const runSearch = useCallback(async (q: string) => {
     if (!q.trim() || loading) return;
+
+    // Discover runs an LLM + heavy fan-out and is a signed-in feature — the API
+    // enforces this too. Prompt to sign up rather than firing a doomed request.
+    if (!isLoggedIn) {
+      promptSignup();
+      return;
+    }
 
     // Check cache first
     const cached = readCache(q);
@@ -220,10 +229,15 @@ export default function DiscoverPage() {
       setLoading(false);
       setStreaming(false);
     }
-  }, [loading, restoreFromCache]);
+  }, [loading, restoreFromCache, isLoggedIn, promptSignup]);
 
-  // Auto-run if there's a query in the URL on first load
+  // Auto-run if there's a query in the URL — but wait for auth to resolve first,
+  // otherwise a signed-in visitor arriving via a direct link would be wrongly
+  // prompted to sign up before their session loads.
+  const didAutoRun = useRef(false);
   useEffect(() => {
+    if (authLoading || didAutoRun.current) return;
+    didAutoRun.current = true;
     const q = searchParams.get("q");
     if (q) {
       setQuery(q);
@@ -232,7 +246,7 @@ export default function DiscoverPage() {
       inputRef.current?.focus();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading]);
 
   async function handleSubmit(e: React.FormEvent | null, overrideQuery?: string) {
     e?.preventDefault();

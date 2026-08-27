@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createReadClient } from "@/lib/supabase/read";
 import { absoluteUrl } from "@/lib/seo";
 import StackCard, { StackCardData } from "@/components/StackCard";
+
+// Public listing — ISR instead of a per-request dynamic render.
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Published stacks",
@@ -17,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 export default async function StacksIndexPage() {
-  const supabase = await createClient();
+  const supabase = createReadClient();
   const { data } = await supabase
     .from("published_stacks")
     .select("slug, query, films, created_at, author_name")

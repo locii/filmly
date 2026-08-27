@@ -27,6 +27,26 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
+// Cached ISR. All the TMDB fetches below already revalidate hourly, so this just
+// pins the route-cache window; unlisted ids still render on demand and are cached.
+export const revalidate = 3600;
+
+// Pre-render the most popular films at build so the hottest, most-crawled pages
+// are served from cache instead of a cold 8-call render on first hit.
+export async function generateStaticParams() {
+  try {
+    const [p1, p2] = await Promise.all([
+      tmdb.popular("1") as Promise<TMDBResponse<Film>>,
+      tmdb.popular("2") as Promise<TMDBResponse<Film>>,
+    ]);
+    return [...p1.results, ...p2.results].map((f) => ({
+      id: `${f.id}-${slugify(f.title)}`,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const filmId = parseInt(id.split("-")[0], 10);

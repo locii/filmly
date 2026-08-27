@@ -1,8 +1,12 @@
 import type { MetadataRoute } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { createReadClient } from "@/lib/supabase/read";
 import { tmdb } from "@/lib/tmdb";
 import { absoluteUrl } from "@/lib/seo";
 import { Genre } from "@/lib/types";
+
+// Regenerate at most hourly. Previously this ran a cookie-based (dynamic) client
+// plus a ≤5000-row query on *every* crawler fetch; now it's cached ISR output.
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -31,7 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Published stacks
   let stackRoutes: MetadataRoute.Sitemap = [];
   try {
-    const supabase = await createClient();
+    const supabase = createReadClient();
     const { data } = await supabase
       .from("published_stacks")
       .select("slug, created_at")

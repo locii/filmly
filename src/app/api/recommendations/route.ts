@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tmdb } from "@/lib/tmdb";
 import { Film, Genre } from "@/lib/types";
+import { createClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Shape returned by tmdb.filmProfile (details + credits + keywords in one call).
 interface ProfileMovie {
@@ -89,6 +91,21 @@ async function discoverTagged(
 }
 
 export async function POST(request: NextRequest) {
+  // Recommendations fan out to dozens of TMDB calls per request. It's a signed-in
+  // feature, so gate it behind a session and throttle to curb runaway fan-out.
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Sign in to get recommendations" }, { status: 401 });
+  }
+  const limit = rateLimit(`recs:${user.id}`, 20, 60_000);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
+    );
+  }
+
   try {
     const body = await request.json();
     const likedIds: number[] = body.liked ?? [];          // explicit thumbs-up

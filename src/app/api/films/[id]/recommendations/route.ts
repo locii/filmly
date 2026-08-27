@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tmdb } from "@/lib/tmdb";
+import { PUBLIC_CACHE } from "@/lib/cache";
 
 export async function GET(
   request: NextRequest,
@@ -30,7 +31,7 @@ export async function GET(
       }
     );
 
-    return NextResponse.json({ results: merged });
+    return NextResponse.json({ results: merged }, { headers: { "Cache-Control": PUBLIC_CACHE } });
   } catch (err) {
     console.error("Recommendations error:", err);
     return NextResponse.json({ error: "Failed to fetch recommendations" }, { status: 500 });

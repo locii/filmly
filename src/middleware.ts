@@ -12,6 +12,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(callbackUrl);
   }
 
+  // Anonymous visitor (no Supabase session cookie) — the vast majority of traffic,
+  // including search-engine/AI crawlers. There's no session to refresh, so skip
+  // instantiating the Supabase client and the `auth.getUser()` network round-trip
+  // entirely. This is the per-request work that was running on 100% of requests.
+  const hasAuthCookie = request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith("sb-"));
+  if (!hasAuthCookie) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -42,7 +53,28 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // Middleware runs *before* the CDN cache is consulted, so a matched path costs
+  // an edge invocation on every hit even when the response is ISR/s-maxage cached.
+  // The previous catch-all matcher therefore billed for `/films/*`, `/genres/*`,
+  // the cached TMDB proxy routes, sitemap.xml and robots.txt — none of which read
+  // the session — plus all crawler traffic to them.
+  //
+  // Only these paths touch cookies server-side (via @/lib/supabase/server or
+  // @/lib/admin-auth) and so actually need the session refresh below. Everything
+  // else is either public, or client-rendered where supabase-js refreshes its own
+  // token in the browser (e.g. /watchlist, /stacks/new).
+  //
+  // `:path*` matches zero or more segments, so "/profile/:path*" covers "/profile".
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/",                              // only for the ?code= safety net above
+    "/profile/:path*",
+    "/my-stacks/:path*",
+    "/admin/:path*",
+    "/u/:path*",
+    "/api/profile/:path*",
+    "/api/stacks/:path*",
+    "/api/recommendations/:path*",
+    "/api/discover/:path*",
+    "/api/admin/:path*",
   ],
 };

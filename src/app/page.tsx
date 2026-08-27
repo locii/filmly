@@ -1,9 +1,13 @@
-import DiscoverPanel from "@/components/DiscoverPanel";
+import HomeHero from "@/components/HomeHero";
 import JsonLd from "@/components/JsonLd";
 import StackCard, { StackCardData } from "@/components/StackCard";
-import { createClient } from "@/lib/supabase/server";
+import { createReadClient } from "@/lib/supabase/read";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import Link from "next/link";
+
+// Public content — render once and revalidate hourly rather than SSR (with an
+// auth round-trip) on every request. The signed-in hero is resolved client-side.
+export const revalidate = 3600;
 
 const websiteJsonLd = {
   "@context": "https://schema.org",
@@ -21,16 +25,13 @@ const websiteJsonLd = {
 };
 
 export default async function HomePage() {
-  const supabase = await createClient();
-  const [{ data: { user } }, { data: latestStacks }] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase
-      .from("published_stacks")
-      .select("slug, query, films, created_at, author_name")
-      .gt("total_titles", 0)
-      .order("created_at", { ascending: false })
-      .limit(6),
-  ]);
+  const supabase = createReadClient();
+  const { data: latestStacks } = await supabase
+    .from("published_stacks")
+    .select("slug, query, films, created_at, author_name")
+    .gt("total_titles", 0)
+    .order("created_at", { ascending: false })
+    .limit(6);
 
   const stacks = (latestStacks as StackCardData[] | null) ?? [];
 
@@ -39,19 +40,7 @@ export default async function HomePage() {
       <JsonLd data={websiteJsonLd} />
       {/* Hero */}
       <div className="text-left py-8">
-        {user ? (
-          <>
-            <h1 className="text-4xl font-bold text-white mb-3">What kind of film do you want to watch?</h1>
-            <DiscoverPanel />
-          </>
-        ) : (
-          <>
-            <h1 className="text-4xl font-bold text-white mb-3">Find your next favourite film.</h1>
-            <p className="text-zinc-400 text-lg">
-             Break free from streaming service algorithms and discover films that truly speak to you.<br /> Create and share thoughtful collections of movies that have shaped, moved, or inspired you.
-            </p>
-          </>
-        )}
+        <HomeHero />
       </div>
 
       <hr className="border-zinc-800" />

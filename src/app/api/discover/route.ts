@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { tmdb } from "@/lib/tmdb";
 import { Film, TMDBResponse } from "@/lib/types";
+import { createClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 const anthropic = new Anthropic();
 
@@ -54,6 +56,22 @@ async function lookupFilm(raw: string): Promise<Film | null> {
 }
 
 export async function POST(request: NextRequest) {
+  // This endpoint spends real money/CPU (an LLM call + ~100 TMDB lookups per
+  // request). Discover is a signed-in feature, so require a session and cap the
+  // rate to stop a single user (or leaked cookie) hammering it.
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return new Response(JSON.stringify({ type: "error", message: "Sign in to use Discover" }), { status: 401 });
+  }
+  const limit = rateLimit(`discover:${user.id}`, 10, 60_000);
+  if (!limit.ok) {
+    return new Response(
+      JSON.stringify({ type: "error", message: "Slow down — too many requests" }),
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
+    );
+  }
+
   const { query } = await request.json();
   if (!query?.trim()) {
     return new Response(JSON.stringify({ type: "error", message: "Query required" }), { status: 400 });
