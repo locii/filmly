@@ -29,7 +29,18 @@ interface Props {
 
 // Cached ISR. All the TMDB fetches below already revalidate hourly, so this just
 // pins the route-cache window; unlisted ids still render on demand and are cached.
-export const revalidate = 3600;
+// Film pages are the long tail: TMDB has ~1M ids and crawlers walk all of them,
+// so each unique id is a guaranteed cold miss that renders and writes. A 1h
+// window meant every page that stayed under any kind of traffic also *rewrote*
+// itself, and its 7 TMDB cache entries, every hour indefinitely. The underlying
+// data is immutable, so ask to hold the rendered page for a month.
+//
+// Note the effective window is 1 DAY, not 30: Next floors a route's revalidate
+// at the shortest `next.revalidate` of any fetch inside it, and this page calls
+// tmdb.watchProviders (DAILY, because streaming availability really does move).
+// That's still 24x fewer rewrites than the old 1h. If you ever want the full
+// month, move the watch-provider fetch client-side rather than staling it here.
+export const revalidate = 2_592_000;
 
 // Pre-render the most popular films at build so the hottest, most-crawled pages
 // are served from cache instead of a cold 8-call render on first hit.
