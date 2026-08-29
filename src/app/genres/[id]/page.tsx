@@ -7,6 +7,27 @@ import JsonLd from "@/components/JsonLd";
 import { absoluteUrl, filmOgImage } from "@/lib/seo";
 import { notFound } from "next/navigation";
 
+// Was rendering on demand for every request, re-fetching and re-writing its
+// cache entries each time. Nothing here reads cookies/headers/searchParams, so
+// it can be cached. Effective window is a day regardless of what's set here:
+// tmdb.byGenre is DAILY (popularity ordering drifts) and Next floors a route's
+// revalidate at the shortest fetch window inside it.
+export const revalidate = 86_400;
+
+// `revalidate` alone does NOT put a dynamic segment on the ISR path — without
+// generateStaticParams the route stays fully dynamic and re-renders per request
+// (verify via dynamicRoutes in .next/prerender-manifest.json). There are only
+// ~19 genres, so prerender them all.
+export async function generateStaticParams() {
+  try {
+    const { genres } = (await tmdb.genres()) as { genres: Genre[] };
+    return genres.map((g) => ({ id: String(g.id) }));
+  } catch {
+    // TMDB unavailable at build — fall back to on-demand ISR for every id.
+    return [];
+  }
+}
+
 interface Props {
   params: Promise<{ id: string }>;
 }

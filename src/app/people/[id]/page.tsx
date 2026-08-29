@@ -8,6 +8,18 @@ import FollowButton from "@/components/FollowButton";
 import JsonLd from "@/components/JsonLd";
 import { absoluteUrl, posterOgImage } from "@/lib/seo";
 
+// Same fix as the genre pages — was server-rendered per request. This one only
+// calls tmdb.person (IMMUTABLE), so it holds the full month: a person's
+// filmography and biography are about as static as this data gets.
+export const revalidate = 2_592_000;
+
+// Required for the revalidate above to take effect at all — see the note in
+// genres/[id]. The id space is unbounded here, so prerender nothing: an empty
+// array still opts the route into ISR, and each id is cached on first render.
+export async function generateStaticParams() {
+  return [];
+}
+
 interface Props {
   params: Promise<{ id: string }>;
 }
