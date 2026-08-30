@@ -25,6 +25,11 @@ export const metadata: Metadata = {
   },
   description: DEFAULT_DESCRIPTION,
   applicationName: SITE_NAME,
+  // Refuse Google Translate's proxy (www-thefilmstack-com.translate.goog).
+  // Its fetches arrive from Google infrastructure, so they pass verified-bot
+  // exemptions in the Cloudflare rules and hit the origin as cold renders —
+  // it was being used to route around the bot blocking entirely.
+  other: { google: "notranslate" },
   openGraph: {
     siteName: SITE_NAME,
     type: "website",
