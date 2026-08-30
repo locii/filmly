@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import SiteFrame from "@/components/SiteFrame";
 import { FavouritesProvider } from "@/context/FavouritesContext";
 import { FollowsProvider } from "@/context/FollowsContext";
 import { GenreFollowsProvider } from "@/context/GenreFollowsContext";
@@ -70,9 +69,7 @@ gtag('config', '${GA_ID}');`}
               <GenreFollowsProvider>
                 <ActiveStackProvider>
                   <AuthPromptProvider>
-                    <Navbar />
-                    <main className="min-h-screen pt-16">{children}</main>
-                    <Footer />
+                    <SiteFrame>{children}</SiteFrame>
                   </AuthPromptProvider>
                 </ActiveStackProvider>
               </GenreFollowsProvider>
