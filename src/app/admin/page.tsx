@@ -4,6 +4,7 @@ import { getAdminUser } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import AdminUsers, { AdminUserRow } from "@/components/admin/AdminUsers";
 import AdminStacks, { AdminStackRow } from "@/components/admin/AdminStacks";
+import AdminCleanup from "@/components/admin/AdminCleanup";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -99,7 +100,10 @@ export default async function AdminPage() {
       </div>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-white">Users <span className="text-zinc-500 font-normal">· {userRows.length}</span></h2>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xl font-semibold text-white">Users <span className="text-zinc-500 font-normal">· {userRows.length}</span></h2>
+          <AdminCleanup />
+        </div>
         <AdminUsers users={userRows} />
       </section>
 
