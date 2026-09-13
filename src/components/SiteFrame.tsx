@@ -7,9 +7,9 @@ import Footer from "./Footer";
 /**
  * Site chrome (nav + footer + main padding).
  *
- * Omitted on /signin. The site is private, so a signed-out visitor would
- * otherwise be shown a nav bar full of links — Genres, Stacks, search — that
- * all bounce straight back to the sign-in screen.
+ * Omitted on /signin, to keep the sign-in screen free of distractions. The
+ * rest of the site is public and browsable signed-out, so this is purely a
+ * presentational choice now — it is no longer load-bearing.
  */
 export default function SiteFrame({ children }: { children: React.ReactNode }) {
   if (usePathname() === "/signin") return <>{children}</>;
